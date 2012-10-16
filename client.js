@@ -1,15 +1,22 @@
+var shared = require("./shared.js");
+
 var ws = new window.WebSocket('ws://127.0.0.1:8006');
 
-shared.addWebSocketObjectSupport(ws);
-/*ws.onmessage = function(message) {
-    console.log('received: %s', message.data);
-    console.log(message);
-};*/
+var client_player = {name : 'anton', keys : { left : 37, right : 40}};
 
-ws.onobject = function(obj) {
-    console.log(obj);
-};
+shared.addWebSocketObjectSupport(ws);
 
 ws.onopen = function() {
-    ws.send({'some': 'object'});
+    ws.sendObject(shared.createHelloPacket(client_player.name));
+    var clientWorld = new ClientWorld(ws, client_player.keys);
+
+    //ws.registerReceivedPacketCallback(shared.PACKET_TYPES.)
+    ws.registerReceivedPacketCallback(shared.PACKET_TYPES.PLAYERS, function (packet) { return packet }, function (packet) {
+        clientWorld.startGame(packet.players, ws);
+        console.log("started!");
+    });
+
+    ws.sendObject(shared.createStartPacket());
+    console.log("waiting for players packet!");
 };
+
