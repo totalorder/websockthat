@@ -59,7 +59,7 @@
         INPUT : 'INPUT',
         START : 'START',
         HELLO : 'HELLO',
-        PLAYERS : 'PLAYERS'
+        START_DATA : 'START_DATA'
     };
 
     exports.createPacket = function () {
@@ -88,10 +88,11 @@
         return packet;
     };
 
-    exports.createPlayersPacket = function (players) {
+    exports.createStartDataPacket = function (options, players) {
         var packet = exports.createPacket();
-        packet.type = exports.PACKET_TYPES.PLAYERS;
+        packet.type = exports.PACKET_TYPES.START_DATA;
         packet.players = players;
+        packet.options = options;
         return packet;
     };
 
@@ -143,7 +144,40 @@
 
             sendPacketToAllClients : sendPacketToAllClients
         };
-    }
+    };
 
+    exports.ClientInputHandler = function (webSocket) {
+        var _players = null;
+        var onTickReceived = function (packet) {
+            //console.log("ClientInputHandler got TICK ", packet);
+            for (var i = 0; i < _players.length; i++) {
+                var player = _players[i];
+                if (packet.players[player.id]) {
+                    //console.log("got TICK ", player.id);
+                    player.addTrailPoint(packet.players[player.id]);
+                }
+            }
+        };
+
+        return {
+            start : function (players) {
+                _players = players;
+                webSocket.registerReceivedPacketCallback(exports.PACKET_TYPES.TICK, function (packet) { return packet }, onTickReceived);
+            }
+        };
+    };
+
+    exports.createDefaultOptions = function () {
+        return {
+            // The desired number of ticks per second
+            DESIRED_TPS : 20,
+            MAX_TICKS : 350,
+            TURNING_SPEED : 10,
+            MOVEMENT_SPEED : 10,
+            LINE_SIZE : 3,
+            GAME_WIDTH : 200,
+            GAME_HEIGHT : 200
+        };
+    };
 })(typeof exports === 'undefined'? this['shared']={}: exports);
 

@@ -12,12 +12,14 @@ var WebSocketServer = require('ws').Server,
             }
             playerInputCallbacks[player_id].push(callback);
         };
-
-        var wss = new WebSocketServer({port: 8006});
+        var address = {host: '127.0.0.1', port: 8006};
+        var wss = new WebSocketServer(address);
+        console.log("listening to ", address);
         var playerInputCallbacks = {};
         var outputHandler = shared.ServerOutputHandler();
         var clients = [];
-        var theWorld = world.World(outputHandler);
+        var options = shared.createDefaultOptions();
+        var theWorld = world.World(null, outputHandler, options);
 
         var nextClientID = 0;
         wss.on('connection', function(ws) {
@@ -25,34 +27,17 @@ var WebSocketServer = require('ws').Server,
             ws.client_id = nextClientID;
             outputHandler.addClientWS(ws);
             nextClientID++;
-            ws.on('message', function(message) {
+            /*ws.on('message', function(message) {
                 //console.log('received: %s', message);
-            });
+            });*/
 
             shared.addWebSocketObjectSupport(ws);
             clients.push(ws);
             ws.onobject = function (packet) {
                 if (packet.type == shared.PACKET_TYPES.HELLO) {
                     console.log("received HELLO from player", packet.name);
-                    //var new_player = player.Player(ws.client_id, packet.name);
-
                     ws.player_data = {id: ws.client_id, name : packet.name};
-
-                    //ws.input = ws_input;
-
-                    //exports.registerPlayerInputCallback(ws.client_id, ws_input.onInputCallback);
                 }
-
-                /*
-                if (packet.type == shared.PACKET_TYPES.INPUT) {
-                    if(playerInputCallbacks[ws.client_id]) {
-                        for (var i = 0; i < playerInputCallbacks[ws.client_id].length; i++) {
-                            var inputCallback = playerInputCallbacks[ws.client_id][i];
-                            inputCallback(packet.command);
-                        }
-                    }
-                }*/
-                //ws.sendObject(packet);
             };
 
             ws.registerReceivedPacketCallback(shared.PACKET_TYPES.START, function (packet) { return packet }, function (packet) {
@@ -62,15 +47,22 @@ var WebSocketServer = require('ws').Server,
                 ws.registerReceivedPacketCallback(shared.PACKET_TYPES.INPUT, function (packet) { return packet.command; }, ws_input_device.onInputCallback);
                 ws.player_data.input_device = ws_input_device;
                 ws.player_data.input_handler = local_input_handler;
-
+                ws.player_data.x = options.GAME_WIDTH * 0.1 + Math.random() * options.GAME_WIDTH * 0.8;
+                ws.player_data.y = options.GAME_HEIGHT * 0.1 + Math.random() * options.GAME_HEIGHT * 0.8;
                 ws.start = true;
                 var allStarted = true;
+
+                if (clients.length < 2) {
+                    allStarted = false;
+                }
+
+                /*
                 for (var i = 0; i < clients.length; i++) {
                     var client = clients[i];
                     if (!client.start) {
                         allStarted = false;
                     }
-                }
+                }*/
 
                 if (allStarted) {
 
@@ -84,7 +76,7 @@ var WebSocketServer = require('ws').Server,
                     }
 
                     console.log("got START from all players, sending players: ", player_infos);
-                    var players_packet = shared.createPlayersPacket(player_infos);
+                    var players_packet = shared.createStartDataPacket(options, player_infos);
                     outputHandler.sendPacketToAllClients(players_packet, function (client_id, packet) {
                         for (var i = 0; i < packet.players.length; i++) {
                             var player_data = packet.players[i];

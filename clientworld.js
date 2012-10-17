@@ -118,6 +118,7 @@ var ClientWorld = function (webSocket, keys) {
             var player = _players[i];
             //console.log("got TICK ", player.id);
             if (packet.players[player.id]) {
+
                 player.addTrailPoint(packet.players[player.id]);
             }
         }

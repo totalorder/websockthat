@@ -12,13 +12,16 @@
  */
 
 (function(exports){
-    exports.CanvasRenderer = function (element_id, width, height, settings, World) {
+    exports.CanvasRenderer = function (element_id, settings, world) {
 
         var desiredFPS = 25; // The disired frames per second
         var desiredRedrawInterval = 1000 / desiredFPS; // The desired redraw interval to keep the desired FPS
         var redrawInterval = desiredRedrawInterval; // The current redraw interval
         var redrawStartTime = new Date().getTime(); // The time the last redraw started
         var frameRenderTime = 100; // The time it took to render the last frame
+
+        var width = settings.GAME_WIDTH;
+        var height = settings.GAME_HEIGHT;
 
         // DOM elements for text output
         var FPSSpan = document.getElementById('frame_duration');
@@ -31,19 +34,23 @@
         console.log("drawing on canvas", canvas);
         var ctx = canvas.getContext("2d");
         var debugMessage = "";
+
         var canvas_size = {
-            width: parseInt(canvas.getAttribute("width")),
-            height: parseInt(canvas.getAttribute("height"))
+            width: width,
+            height: height
         };
+
+        canvas.setAttribute("width", width);
+        canvas.setAttribute("height", height);
 
         ctx.lineWidth = settings.LINE_SIZE * 2;
         ctx.strokeStyle="rgb(0,0,0)";
 
         var running = false;
-        var scale = {
+        /*var scale = {
             x: canvas_size.width / width,
             y: canvas_size.height / height
-        };
+        };*/
 
         var redrawLoop = function () {
             // Draws to the canvas at a given frames per second, slowing down FPS if rendering is too slow
@@ -52,12 +59,12 @@
             // Record the time when the redraw starts to measure execution time
             redrawStartTime = new Date().getTime();
 
-            //console.log(World);
+            //console.log(world);
 
             // Draw debug/log/performance data in DOM
             FPSSpan.innerHTML = 1000 / redrawInterval;
-            TPSSpan.innerHTML = World.getTicksPerSecondText();
-            logDiv.innerHTML = World.getLogData().substr(0,2048);
+            TPSSpan.innerHTML = world.getTicksPerSecondText();
+            logDiv.innerHTML = world.getLogData().substr(0,2048);
             debugDiv.innerHTML = debugMessage;
 
             // Do the actual redrawing of the screen
@@ -81,7 +88,7 @@
             // Get the ratio (0 > r > 1) of the tick duration
             // Representing how big part of the tick that has elapsed
 
-            var tick_duration_ratio = World.getTickDurationRatio();
+            var tick_duration_ratio = world.getTickDurationRatio();
             //ctx.strokeStyle="rgb(200,200,255)"
             ctx.clearRect(0, 0, canvas_size.width, canvas_size.height);
             for (var i = 0; i < players.length; i++) {
@@ -99,7 +106,6 @@
                     //ctx.fillRect(Math.floor(point.x),100,10,10);
                     //console.log(point);
 
-                    ctx.fillRect(10,10,10,10);
                     ctx.beginPath();
                     ctx.arc(point.x, point.y, settings.LINE_SIZE, 0, Math.PI * 2, true);
                     ctx.closePath();
@@ -189,7 +195,7 @@
                 // It will continue for ever
                 if (!running) {
                     console.log("starting rendering engine");
-                    //console.log(World);
+                    //console.log(world);
                     running = true;
                     redrawLoop();
                 }
@@ -202,7 +208,7 @@
 
 
 
-    exports.StubRenderer = function (element_id, width, height) {
+    exports.StubRenderer = function (element_id) {
         return {
             getFrameRenderTime : function() {
                 return 0;
@@ -224,6 +230,7 @@
             clear : function () {
             },
             start : function () {
+                console.log("starting STUB renderer");
             },
             isStub : function () {
                 return true;

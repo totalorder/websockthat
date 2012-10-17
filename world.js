@@ -4,17 +4,13 @@ var shared = require('./shared.js');
 var input = require('./input.js');
 
 (function(exports){
-    exports.World = function (outputHandler) {
-        var DESIRED_TPS = 20; // The desired number of ticks per second
-        var MAX_TICKS = 350;
-        var STUB = true;
+    exports.World = function (inputHandler, outputHandler, options) {
 
-        var TURNING_SPEED = 10;
-        var MOVEMENT_SPEED = 10;
-        var LINE_SIZE = 3;
+        var TURNING_SPEED = options.TURNING_SPEED;
+        var MOVEMENT_SPEED = options.MOVEMENT_SPEED;
+        var LINE_SIZE = options.LINE_SIZE;
 
-        var MAX_MOVEMENT_SPEED = LINE_SIZE;
-        DESIRED_TPS = (MOVEMENT_SPEED / LINE_SIZE) * MOVEMENT_SPEED;
+        var DESIRED_TPS = (MOVEMENT_SPEED / LINE_SIZE) * MOVEMENT_SPEED;
         MOVEMENT_SPEED = LINE_SIZE;
 
         var _gameStarted = false;
@@ -39,18 +35,10 @@ var input = require('./input.js');
         // Exposed by public function getTicksPerSecondText()
 
         var rendering_settings = {
-            LINE_SIZE : LINE_SIZE
+            LINE_SIZE : LINE_SIZE,
+            GAME_WIDTH : options.GAME_WIDTH,
+            GAME_HEIGHT : options.GAME_HEIGHT
         };
-
-        if (DESIRED_TPS == 0) {
-            DESIRED_TPS = 1000;
-            _desiredTickInterval = 1000 / DESIRED_TPS;
-            _renderingEngine = new renderer.StubRenderer("canvas", null, null, rendering_settings);
-        } else if (STUB) {
-            _renderingEngine = new renderer.StubRenderer("canvas", null, null, rendering_settings);
-        } else {
-            _renderingEngine = new renderer.CanvasRenderer("canvas", null, null, rendering_settings);
-        }
 
         /**
          * Make sure that no one logs to the
@@ -85,7 +73,7 @@ var input = require('./input.js');
             };
 
             if (!_gameStarted) {
-                var new_player = new player.Player(player_data.id, player_data.name, player_data.input_device, player_data.input_handler, player_settings);
+                var new_player = new player.Player(player_data.id, player_data.name, player_data.input_device, player_data.input_handler, player_settings, player_data.x, player_data.y);
                 _players.push(new_player);
                 return new_player;
             }
@@ -148,6 +136,12 @@ var input = require('./input.js');
             var i;
             var self = this;
 
+            if (outputHandler) {
+                _renderingEngine = new renderer.StubRenderer("canvas", rendering_settings, this);
+            } else {
+                _renderingEngine = new renderer.CanvasRenderer("canvas", rendering_settings, this);
+            }
+
             for (i = 0; i < _player_datas.length; i++) {
                 var new_player = _createPlayer(_player_datas[i]);
                 new_player.start();
@@ -155,69 +149,67 @@ var input = require('./input.js');
                 _renderingEngine.create(new_player);
             }
 
-            for (i = 0; i < _players.length; i++) {
-                var new_player = _players[i];
-                new_player.start();
-                // Make sure that all players are in the game
-                _log("Created new player " + new_player.getName());
-                _renderingEngine.create(new_player);
-            }
-
             _renderingEngine.start();
-
             _gameStarted = true;
+            if (outputHandler) {
 
-            (function tick() {
-                // Runs the game simulation at a given ticks per second, slowing down if rendering or simulation is too slow
-                // Will run until end of game
-                var i;
-                var message;
-                var _tickComputationStartTime = new Date().getTime();
-                if (!_tick.call(self)) {
+                console.log("starting server");
+                (function tick() {
+                    // Runs the game simulation at a given ticks per second, slowing down if rendering or simulation is too slow
+                    // Will run until end of game
+                    var i;
+                    var message;
+                    var _tickComputationStartTime = new Date().getTime();
+                    if (!_tick.call(self)) {
 
-                    // Measure the time of the computation and adjust the tick interval if it or the rendering time
-                    // is slower than the desired interval
-                    var frameRenderTimeBoundary = _renderingEngine.getFrameRenderTime() * 1.5;
-                    var _tickComputationTimeBondary = (new Date().getTime() - _tickComputationStartTime) * 1.5;
-                    if(_tickComputationTimeBondary > _desiredTickInterval || frameRenderTimeBoundary > _desiredTickInterval){
-                        if (_tickComputationTimeBondary > _desiredTickInterval) {
-                            _tickInterval = _tickComputationTimeBondary;
-                            _tps_text = (1000 / _tickInterval) + " (over desired tick computation boundary)";
+                        // Measure the time of the computation and adjust the tick interval if it or the rendering time
+                        // is slower than the desired interval
+                        var frameRenderTimeBoundary = _renderingEngine.getFrameRenderTime() * 1.5;
+                        var _tickComputationTimeBondary = (new Date().getTime() - _tickComputationStartTime) * 1.5;
+                        if(_tickComputationTimeBondary > _desiredTickInterval || frameRenderTimeBoundary > _desiredTickInterval){
+                            if (_tickComputationTimeBondary > _desiredTickInterval) {
+                                _tickInterval = _tickComputationTimeBondary;
+                                _tps_text = (1000 / _tickInterval) + " (over desired tick computation boundary)";
+                            }
+
+                            if(frameRenderTimeBoundary > _tickInterval) {
+                                _tickInterval = frameRenderTimeBoundary;
+                                _tps_text = (1000 / _tickInterval) + " (over desired render boundary)";
+                            }
+                        } else {
+                            _tickInterval = _desiredTickInterval;
+                            _tps_text = (1000 / _tickInterval);
                         }
 
-                        if(frameRenderTimeBoundary > _tickInterval) {
-                            _tickInterval = frameRenderTimeBoundary;
-                            _tps_text = (1000 / _tickInterval) + " (over desired render boundary)";
+                        // Schedule the next tick
+                        setTimeout(tick, _tickInterval);
+                        _tickStartTime = new Date().getTime();
+                    }
+                    else {
+                        if (_numberOfTicks >= MAX_TICKS) {
+                            message = "No winner! Time out!\n";
+                        } else  {
+                            message = "Winner is " + _players[_lastAlive].getName() + "\n\nKills\n";
                         }
-                    } else {
-                        _tickInterval = _desiredTickInterval;
-                        _tps_text = (1000 / _tickInterval);
-                    }
 
-                    // Schedule the next tick
-                    setTimeout(tick, _tickInterval);
-                    _tickStartTime = new Date().getTime();
-                }
-                else {
-                    if (_numberOfTicks >= MAX_TICKS) {
-                        message = "No winner! Time out!\n";
-                    } else  {
-                        message = "Winner is " + _players[_lastAlive].getName() + "\n\nKills\n";
+                        var results = {'winner' : _players[_lastAlive].getName(), 'scores' : {}};
+                        for ( i = 0; i < _players.length; i++ ) {
+                            message += _players[i].getName() + ": " + _players[i].getKillCount() + "\n";
+                            results[_players[i].getName()] = _players[i].getKillCount();
+                        }
+                        _log(message);
+                        alert(message);
+                        _gameStarted = false;
+                        if(_restartCallback) {
+                            _restartCallback(results);
+                        }
                     }
+                })();
+            }
+            if (inputHandler) {
 
-                    var results = {'winner' : _players[_lastAlive].getName(), 'scores' : {}};
-                    for ( i = 0; i < _players.length; i++ ) {
-                        message += _players[i].getName() + ": " + _players[i].getKillCount() + "\n";
-                        results[_players[i].getName()] = _players[i].getKillCount();
-                    }
-                    _log(message);
-                    alert(message);
-                    _gameStarted = false;
-                    if(_restartCallback) {
-                        _restartCallback(results);
-                    }
-                }
-            })();
+                inputHandler.start(_players);
+            }
         };
 
         var clear = function() {

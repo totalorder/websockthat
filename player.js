@@ -1,10 +1,10 @@
 var input = require('./input.js');
 
 (function(exports){
-    exports.Player = function (id, name, input_device, input_handler, settings) {
+    exports.Player = function (id, name, input_device, input_handler, settings, x, y) {
 
-        var _x = 20;
-        var _y = 20;
+        var _x = x;
+        var _y = y;
         var _lastCommand = input.COMMANDS.LEFT_RIGHT_UP;
         var _direction = 45;
         var _trail = [{x: _x, y: _y}];
