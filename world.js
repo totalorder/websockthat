@@ -5,7 +5,7 @@ var input = require('./input.js');
 
 (function(exports){
     exports.World = function (inputHandler, outputHandler, options) {
-
+        console.log("creating the world!");
         var TURNING_SPEED = options.TURNING_SPEED;
         var MOVEMENT_SPEED = options.MOVEMENT_SPEED;
         var LINE_SIZE = options.LINE_SIZE;
@@ -16,7 +16,6 @@ var input = require('./input.js');
         var _gameStarted = false;
         var _lastAlive;
         var _players = [];
-        //var _player_datas = [];
         var _functionCount = 0;
         var _currentplayerIndex = 0;
         var _renderingEngine = null;
@@ -57,10 +56,6 @@ var input = require('./input.js');
             log(message, 'playerHandler');
         };
 
-        var addPlayer = function (player_data) {
-            _player_datas.push(player_data);
-        };
-
         /**
          * Add a player to the game. It's only allowed to add a player before the game has started
          * @param player The player to add to the game
@@ -69,7 +64,9 @@ var input = require('./input.js');
             var player_settings = {
                 TURNING_SPEED : TURNING_SPEED,
                 LINE_SIZE : LINE_SIZE,
-                MOVEMENT_SPEED : MOVEMENT_SPEED
+                MOVEMENT_SPEED : MOVEMENT_SPEED,
+                GAME_WIDTH : options.GAME_WIDTH,
+                GAME_HEIGHT : options.GAME_HEIGHT
             };
 
             if (!_gameStarted) {
@@ -103,7 +100,7 @@ var input = require('./input.js');
                 player = _players[i];
                 //console.log("player number", i);
                 var collission_distance = player.getCollision(deltaTime, _players);
-                if (collission_distance) {
+                if (collission_distance != null) {
                     collisions.push({'player': player, 'collision_distance': collission_distance, 'player_number' : i});
                 }
             }
@@ -115,13 +112,32 @@ var input = require('./input.js');
             for (i = 0; i < collisions.length; i++) {
                 player = collisions[i].player;
                 player.kill();
+                var players_alive = 0;
+                for (var it = 0; it < _players.length; it++) {
+                    if (_players[it].isAlive()) {
+                        players_alive ++;
+                        _lastAlive = player;
+                    }
+                }
 
-                //console.log("removing player " + _players[collisions[i].player_number].getName());
                 console.log("removing player " + collisions[i].player_number);
                 _players.splice(collisions[i].player_number, 1);
+
+                if (players_alive <= 1) {
+                    outputHandler.newTick(_numberOfTicks + 1);
+                    return true;
+                }
             }
 
             _numberOfTicks++;
+        };
+
+        var clear = function() {
+            if(_renderingEngine) {
+                _renderingEngine.clear();
+            }
+            _numberOfTicks = 0;
+            _players = [];
         };
 
         var startGame = function (_player_datas, _restartCallback) {
@@ -129,17 +145,33 @@ var input = require('./input.js');
                 return;
             }
             console.log("starting game");
-            /*for (i = 0; i < players.length; i++) {
-                _addPlayer(players[i]);
-            }*/
-
             var i;
             var self = this;
 
+            clear();
+
+            var player_infos = [];
+            for (i = 0; i < _player_datas.length; i++) {
+                var player_data = _player_datas[i];
+                if (outputHandler) {
+                        player_data.x = options.GAME_WIDTH * 0.1 + Math.random() * options.GAME_WIDTH * 0.8;
+                        player_data.y = options.GAME_HEIGHT * 0.1 + Math.random() * options.GAME_HEIGHT * 0.8;
+                }
+                var player_info = {id: player_data.id, name : player_data.name, x: player_data.x, y : player_data.y };
+                player_infos.push(player_info);
+            }
+
             if (outputHandler) {
-                _renderingEngine = new renderer.StubRenderer("canvas", rendering_settings, this);
+                console.log("got START from all players, sending players: ", player_infos);
+                outputHandler.startGame(options, player_infos);
+
+                if(!_renderingEngine) {
+                    _renderingEngine = new renderer.StubRenderer("canvas", rendering_settings, this);
+                }
             } else {
-                _renderingEngine = new renderer.CanvasRenderer("canvas", rendering_settings, this);
+                if(!_renderingEngine) {
+                    _renderingEngine = new renderer.CanvasRenderer("canvas", rendering_settings, this);
+                }
             }
 
             for (i = 0; i < _player_datas.length; i++) {
@@ -184,40 +216,29 @@ var input = require('./input.js');
                         // Schedule the next tick
                         setTimeout(tick, _tickInterval);
                         _tickStartTime = new Date().getTime();
-                    }
-                    else {
-                        if (_numberOfTicks >= MAX_TICKS) {
-                            message = "No winner! Time out!\n";
-                        } else  {
-                            message = "Winner is " + _players[_lastAlive].getName() + "\n\nKills\n";
+                    } else {
+                        message = "Winner is " + _lastAlive.getName();
+                        console.log(message);
+                        _gameStarted = false;
+                        if (outputHandler) {
+                            outputHandler.gameOver();
+                        }
+                        if (inputHandler) {
+                            inputHandler.gameOver();
                         }
 
-                        var results = {'winner' : _players[_lastAlive].getName(), 'scores' : {}};
-                        for ( i = 0; i < _players.length; i++ ) {
-                            message += _players[i].getName() + ": " + _players[i].getKillCount() + "\n";
-                            results[_players[i].getName()] = _players[i].getKillCount();
-                        }
-                        _log(message);
-                        alert(message);
-                        _gameStarted = false;
                         if(_restartCallback) {
-                            _restartCallback(results);
+                            _restartCallback();
                         }
                     }
                 })();
             }
             if (inputHandler) {
-
                 inputHandler.start(_players);
             }
         };
 
-        var clear = function() {
-            _renderingEngine.clear();
-            _currentplayerIndex = 0;
-            _numberOfTicks = 0;
-            _players = [];
-        };
+
 
         var getTicksPerSecondText = function () {
             // Expose a text describing the ticks per second for rendering by rendering engine
@@ -242,13 +263,18 @@ var input = require('./input.js');
             return _logData;
         };
 
+        var gameOver = function () {
+            _renderingEngine.stop();
+        };
+
         return {
             clear : clear,
             startGame : startGame,
             log : log,
             getTicksPerSecondText:getTicksPerSecondText,
             getTickDurationRatio:getTickDurationRatio,
-            getLogData:getLogData
+            getLogData:getLogData,
+            gameOver:gameOver
         };
 
     };

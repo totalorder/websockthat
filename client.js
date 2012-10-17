@@ -12,6 +12,8 @@ console.log("waiting for connection open");
 ws.onopen = function() {
     ws.sendObject(shared.createHelloPacket(client_player.name));
 
+    var clientInputHandler = shared.ClientInputHandler(ws);
+    var clientWorld = null;
     var input_device = new input.LocalInputDevice(client_player.keys, function (command) {
         if (command == input.COMMANDS.START) {
             ws.sendObject(shared.createStartPacket());
@@ -20,8 +22,8 @@ ws.onopen = function() {
     });
 
     ws.registerReceivedPacketCallback(shared.PACKET_TYPES.START_DATA, function (packet) { return packet }, function (packet) {
-        var clientInputHandler = shared.ClientInputHandler(ws);
-        var clientWorld = new world.World(clientInputHandler, null, packet.options);
+
+        clientWorld = new world.World(clientInputHandler, null, packet.options);
 
         for (var i = 0; i < packet.players.length; i++) {
             var player_data = packet.players[i];
@@ -33,6 +35,11 @@ ws.onopen = function() {
 
         clientWorld.startGame(packet.players);
         console.log("started!");
+    });
+
+    ws.registerReceivedPacketCallback(shared.PACKET_TYPES.GAME_OVER, function (packet) { return packet }, function (packet) {
+        console.log("GAME OVER!");
+        clientWorld.gameOver();
     });
 
     console.log("PRESS START!");

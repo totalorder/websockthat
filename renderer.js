@@ -78,8 +78,12 @@
                 redrawInterval = desiredRedrawInterval;
             }
 
-            // Re-run the rendering loop
-            setTimeout(redrawLoop, redrawInterval);
+            if(running) {
+                // Re-run the rendering loop
+                setTimeout(redrawLoop, redrawInterval);
+            } else {
+                console.log("stopping rendering engine");
+            }
         };
 
         var _redraw = function () {
@@ -164,14 +168,23 @@
             }*/
         };
 
-        var get_player_by_id = function (id) {
-            var player = null;
-            for (var i = 0; i < players.length; i++) {
-                if (players[i].id == id) {
-                    return players[i];
-                }
+        var clear = function () {
+            players = [];
+        };
+
+        var stop = function () {
+            running = false;
+        };
+
+        var start = function () {
+            // Start the drawing loop
+            // It will continue for ever
+            if (!running) {
+                console.log("starting rendering engine");
+                //console.log(world);
+                running = true;
+                redrawLoop();
             }
-            return player;
         };
 
         return {
@@ -186,20 +199,10 @@
             create: function (player) {
                 players.push(player);
             },
-            clear : function () {
-                players = [];
-            },
+            clear : clear,
 
-            start: function () {
-                // Start the drawing loop
-                // It will continue for ever
-                if (!running) {
-                    console.log("starting rendering engine");
-                    //console.log(world);
-                    running = true;
-                    redrawLoop();
-                }
-            },
+            start: start,
+            stop: stop,
             isStub : function () {
                 return false;
             }
@@ -208,7 +211,7 @@
 
 
 
-    exports.StubRenderer = function (element_id) {
+    exports.StubRenderer = function (element_id, settings, world) {
         return {
             getFrameRenderTime : function() {
                 return 0;
@@ -228,6 +231,8 @@
             shoot: function (id, direction) {
             },
             clear : function () {
+            },
+            stop : function () {
             },
             start : function () {
                 console.log("starting STUB renderer");

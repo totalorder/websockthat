@@ -59,7 +59,8 @@
         INPUT : 'INPUT',
         START : 'START',
         HELLO : 'HELLO',
-        START_DATA : 'START_DATA'
+        START_DATA : 'START_DATA',
+        GAME_OVER : 'GAME_OVER'
     };
 
     exports.createPacket = function () {
@@ -71,6 +72,12 @@
         packet.type = exports.PACKET_TYPES.TICK;
         packet.tick_number = tick_number;
         packet.players = {};
+        return packet;
+    };
+
+    exports.createGameOverPacket = function () {
+        var packet = exports.createPacket();
+        packet.type = exports.PACKET_TYPES.GAME_OVER;
         return packet;
     };
 
@@ -126,6 +133,21 @@
             }
         };
 
+        var startGame = function (options, player_infos) {
+            var players_packet = exports.createStartDataPacket(options, player_infos);
+            sendPacketToAllClients(players_packet, function (client_id, packet) {
+                for (var i = 0; i < packet.players.length; i++) {
+                    var player_data = packet.players[i];
+                    if (client_id == player_data.id) {
+                        player_data.you = true;
+                    } else {
+                        player_data.you = false;
+                    }
+                }
+                return packet;
+            });
+        };
+
         return {
             addTrailPoint : function (player_id, trail_point) {
                 exports.addTrailToTickPacket(tick_packet, player_id, trail_point);
@@ -142,13 +164,22 @@
                 clients.push(ws);
             },
 
-            sendPacketToAllClients : sendPacketToAllClients
+            gameOver : function () {
+                sendPacketToAllClients(exports.createGameOverPacket());
+            },
+
+            startGame : startGame
         };
     };
 
     exports.ClientInputHandler = function (webSocket) {
         var _players = null;
+        var _started = false;
+        var _callbackRegistered = false;
         var onTickReceived = function (packet) {
+            if (!_started) {
+                return;
+            }
             //console.log("ClientInputHandler got TICK ", packet);
             for (var i = 0; i < _players.length; i++) {
                 var player = _players[i];
@@ -161,8 +192,17 @@
 
         return {
             start : function (players) {
+                _started = true;
                 _players = players;
-                webSocket.registerReceivedPacketCallback(exports.PACKET_TYPES.TICK, function (packet) { return packet }, onTickReceived);
+                if(!_callbackRegistered) {
+                    webSocket.registerReceivedPacketCallback(exports.PACKET_TYPES.TICK, function (packet) { return packet }, onTickReceived);
+                }
+                _callbackRegistered = true;
+
+            },
+
+            stop : function () {
+                _started = false;
             }
         };
     };

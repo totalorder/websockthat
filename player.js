@@ -8,7 +8,7 @@ var input = require('./input.js');
         var _lastCommand = input.COMMANDS.LEFT_RIGHT_UP;
         var _direction = 45;
         var _trail = [{x: _x, y: _y}];
-
+        var alive = true;
         var getInputState = function () {
             return _lastCommand;
         };
@@ -35,6 +35,21 @@ var input = require('./input.js');
         var getCollision = function (deltaTime, players) {
             var player;
             var collisions = [];
+
+            if (_x < settings.LINE_SIZE / 2) {
+                return settings.LINE_SIZE / 2 - _x; // Not accurate
+            }
+            if (_x > settings.GAME_WIDTH - settings.LINE_SIZE / 2) {
+                return _x - (settings.GAME_WIDTH - settings.LINE_SIZE / 2);
+            }
+            if (_y < settings.LINE_SIZE / 2) {
+                return settings.LINE_SIZE / 2 - _y; // Not accurate
+            }
+
+            if (_y > settings.GAME_HEIGHT - settings.LINE_SIZE / 2) {
+                return _y - (settings.GAME_HEIGHT - settings.LINE_SIZE / 2);
+            }
+
             //console.log(settings.MOVEMENT_SPEED, settings.LINE_SIZE);
             var _trailTouchDistance = (settings.LINE_SIZE*2) / (settings.MOVEMENT_SPEED * deltaTime) ;
 
@@ -43,16 +58,10 @@ var input = require('./input.js');
 
                 var trail = player.getTrail();
                 var stopAt = player != this ? trail.length : Math.max(-1, trail.length - _trailTouchDistance);
-                //console.log('trail', trail.length);
-                //console.log('stopAt', stopAt);
-                //console.log("playerthis", player == this);
                 for (var ti = 0; ti < stopAt; ti++) {
                     var point = trail[ti];
                     var distance = Math.sqrt(Math.pow(_x - point.x,2) + Math.pow(_y - point.y,2));
-                    //point.distance = distance;
                     if (distance <= settings.LINE_SIZE) {
-                        //console.log("crashed at", _x, _y, distance, point.x, point.y, settings.LINE_SIZE);
-                        //point.crashed = {x: _x, y : _y};
                         collisions.push(distance);
                     }
                 }
@@ -74,11 +83,16 @@ var input = require('./input.js');
         };
 
         var kill = function () {
-            console.log("Player " +  name + " died!");
+            alive = false;
+            console.log("Player " + id + " " +  name + " died!");
         };
 
         var getName = function () {
             return name;
+        };
+
+        var isAlive = function () {
+            return alive;
         };
 
         var setCommand = function (command) {
@@ -116,7 +130,8 @@ var input = require('./input.js');
             getName: getName,
             start : start,
             addTrailPoint : addTrailPoint,
-            id : id
+            id : id,
+            isAlive : isAlive
         };
     };
 })(typeof exports === 'undefined'? this['player']={}: exports);
