@@ -9,8 +9,9 @@ var shared = require('./shared.js');
         //RIGHT_UP : 'RIGHT_UP'
     };
 
-    exports.LocalInputDevice = function (player, keys) {
+    exports.LocalInputDevice = function (keys) {
         var _lastCommandKeyCode = null;
+        var _player = null;
 
         var getKeyCommand = function (keyCode) {
             switch (keyCode) {
@@ -28,7 +29,7 @@ var shared = require('./shared.js');
             var issuedCommand = getKeyCommand(evt.keyCode);
             if (issuedCommand) {
                 _lastCommandKeyCode = evt.keyCode;
-                player.setCommand(issuedCommand);
+                _player.setCommand(issuedCommand);
             }
         };
 
@@ -36,12 +37,13 @@ var shared = require('./shared.js');
             //var issuedCommand = getKeyCommand(evt.keyCode);
             if(evt.keyCode == _lastCommandKeyCode) {
                 _lastCommandKeyCode = null;
-                player.setCommand(exports.COMMANDS.LEFT_RIGHT_UP);
+                _player.setCommand(exports.COMMANDS.LEFT_RIGHT_UP);
             }
         };
 
         return {
-            start : function () {
+            start : function (player) {
+                _player = player;
                 window.addEventListener('keydown',doKeyDown,true);
                 window.addEventListener('keyup',doKeyUp,true);
             }
@@ -62,6 +64,46 @@ var shared = require('./shared.js');
             onInputCallback : function (input_command) {
                 if (_started) {
                     player.setCommand(input_command);
+                }
+            }
+        };
+    };
+
+    exports.LocalInputHandler = function () {
+        var _started = false;
+        var player = null;
+        var player_setCommand = null;
+
+        return {
+            start : function (the_player, player_setCommand_) {
+                player = the_player;
+                player_setCommand = player_setCommand_;
+                _started = true;
+            },
+
+            setCommand : function (command) {
+                if (_started) {
+                    player_setCommand(command);
+                }
+            }
+        };
+    };
+
+    exports.RemoteWSInputHandler = function (webSocket) {
+        var _started = false;
+        var player = null;
+        var player_setCommand = null;
+
+        return {
+            start : function (the_player, player_setCommand_) {
+                player = the_player;
+                player_setCommand = player_setCommand_;
+                _started = true;
+            },
+
+            setCommand : function (command) {
+                if (_started) {
+                    webSocket.sendObject(shared.createInputPacket(command));
                 }
             }
         };

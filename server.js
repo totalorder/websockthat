@@ -57,9 +57,11 @@ var WebSocketServer = require('ws').Server,
 
             ws.registerReceivedPacketCallback(shared.PACKET_TYPES.START, function (packet) { return packet }, function (packet) {
                 console.log("received START from player", ws.player_data.name);
-                var ws_input = input.WSInputDevice();
-                ws.registerReceivedPacketCallback(shared.PACKET_TYPES.INPUT, function (packet) { return packet.command; }, ws_input.onInputCallback);
-                ws.player_data.input = ws_input;
+                var ws_input_device = input.WSInputDevice();
+                var local_input_handler = input.LocalInputHandler();
+                ws.registerReceivedPacketCallback(shared.PACKET_TYPES.INPUT, function (packet) { return packet.command; }, ws_input_device.onInputCallback);
+                ws.player_data.input_device = ws_input_device;
+                ws.player_data.input_handler = local_input_handler;
 
                 ws.start = true;
                 var allStarted = true;

@@ -85,7 +85,7 @@ var input = require('./input.js');
             };
 
             if (!_gameStarted) {
-                var new_player = new player.Player(player_data.id, player_data.name, player_data.input, player_settings);
+                var new_player = new player.Player(player_data.id, player_data.name, player_data.input_device, player_data.input_handler, player_settings);
                 _players.push(new_player);
                 return new_player;
             }
@@ -152,7 +152,6 @@ var input = require('./input.js');
                 var new_player = _createPlayer(_player_datas[i]);
                 new_player.start();
                 // Make sure that all players are in the game
-                _log("Creating new player " + new_player.getName());
                 _renderingEngine.create(new_player);
             }
 
@@ -160,7 +159,7 @@ var input = require('./input.js');
                 var new_player = _players[i];
                 new_player.start();
                 // Make sure that all players are in the game
-                _log("Creating new player " + new_player.getName());
+                _log("Created new player " + new_player.getName());
                 _renderingEngine.create(new_player);
             }
 

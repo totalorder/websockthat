@@ -1,6 +1,7 @@
 var input = require("./input.js");
 var renderer = require("./renderer.js");
 var shared = require("./shared.js");
+var player = require("./player.js");
 
 var ClientWorld = function (webSocket, keys) {
     var COMMANDS = {
@@ -57,11 +58,16 @@ var ClientWorld = function (webSocket, keys) {
         };
 
         if (!_gameStarted) {
-            var player = new ClientPlayer(player_data.id, player_data.name, null, webSocket);
+            var input_device = null;
+            var input_handler = null;
+
             if (player_data.you) {
-                var input_device = new input.LocalInputDevice(player, keys);
+                input_device = new input.LocalInputDevice(keys);
+                input_handler = input.RemoteWSInputHandler(webSocket);
             }
-            _players.push(player);
+            var new_player = new player.Player(player_data.id, player_data.name, input_device, input_handler);
+
+            _players.push(new_player);
             input_device.start();
         }
     };
@@ -107,8 +113,10 @@ var ClientWorld = function (webSocket, keys) {
     };
 
     var onTickReceived = function (packet) {
+        //console.log("got TICK ", packet);
         for (var i = 0; i < _players.length; i++) {
             var player = _players[i];
+            //console.log("got TICK ", player.id);
             if (packet.players[player.id]) {
                 player.addTrailPoint(packet.players[player.id]);
             }
@@ -135,6 +143,7 @@ var ClientWorld = function (webSocket, keys) {
 
         for (i = 0; i < _players.length; i++) {
             var player = _players[i];
+            player.start();
             // Make sure that all players are in the game
             //_log("Creating new player " + _players[i].getName() + " at x=" + _players[i].getX() + ", y=" + _players[i].getY());
             _renderingEngine.create(player);

@@ -1,8 +1,7 @@
 var input = require('./input.js');
 
 (function(exports){
-    exports.Player = function (id, name, input_device, settings) {
-        //var input_device = null;
+    exports.Player = function (id, name, input_device, input_handler, settings) {
 
         var _x = 20;
         var _y = 20;
@@ -83,12 +82,28 @@ var input = require('./input.js');
         };
 
         var setCommand = function (command) {
+            if (input_handler) {
+                input_handler.setCommand(command);
+            }
+        };
+
+        var _setCommand = function (command) {
             _lastCommand = command;
         };
 
         var start = function () {
-            //input_device = input_device_class(this);
-            input_device.start(this);
+            if (input_device) {
+                input_device.start(this);
+            }
+
+            if (input_handler) {
+                input_handler.start(this, _setCommand);
+            }
+
+        };
+
+        var addTrailPoint = function (point) {
+            _trail.push(point);
         };
 
         return {
@@ -99,7 +114,9 @@ var input = require('./input.js');
             setCommand: setCommand,
             kill: kill,
             getName: getName,
-            start : start
+            start : start,
+            addTrailPoint : addTrailPoint,
+            id : id
         };
     };
 })(typeof exports === 'undefined'? this['player']={}: exports);
