@@ -4,16 +4,17 @@ var shared = require('./shared.js');
     exports.COMMANDS = {
         LEFT_DOWN : 'LEFT_DOWN',
         RIGHT_DOWN : 'RIGHT_DOWN',
-        LEFT_RIGHT_UP : 'LEFT_RIGHT_UP'
+        LEFT_RIGHT_UP : 'LEFT_RIGHT_UP',
+        START : 'START'
         //LEFT_UP : 'LEFT_UP',
         //RIGHT_UP : 'RIGHT_UP'
     };
 
-    exports.LocalInputDevice = function (keys) {
+    exports.LocalInputDevice = function (keys, specialKeyCommandsCallback) {
         var _lastCommandKeyCode = null;
         var _player = null;
 
-        var getKeyCommand = function (keyCode) {
+        var getPlayerKeyCommand = function (keyCode) {
             switch (keyCode) {
                 case keys.left:
                     return exports.COMMANDS.LEFT_DOWN;
@@ -25,11 +26,30 @@ var shared = require('./shared.js');
             return null;
         };
 
+        var getSpecialKeyCommand = function (keyCode) {
+            switch (keyCode) {
+
+                case keys.start:
+                    return exports.COMMANDS.START;
+                    break;
+            }
+            return null;
+        };
+
         var doKeyDown = function (evt){
-            var issuedCommand = getKeyCommand(evt.keyCode);
+            var issuedCommand = null;
+            if (_player) {
+                issuedCommand = getPlayerKeyCommand(evt.keyCode);
+            }
             if (issuedCommand) {
                 _lastCommandKeyCode = evt.keyCode;
                 _player.setCommand(issuedCommand);
+            } else {
+
+                issuedCommand = getSpecialKeyCommand(evt.keyCode);
+                if (issuedCommand) {
+                    specialKeyCommandsCallback(issuedCommand);
+                }
             }
         };
 
@@ -41,11 +61,12 @@ var shared = require('./shared.js');
             }
         };
 
+        window.addEventListener('keydown',doKeyDown,true);
+        window.addEventListener('keyup',doKeyUp,true);
+
         return {
             start : function (player) {
                 _player = player;
-                window.addEventListener('keydown',doKeyDown,true);
-                window.addEventListener('keyup',doKeyUp,true);
             }
         };
     };

@@ -27,9 +27,6 @@ var WebSocketServer = require('ws').Server,
             ws.client_id = nextClientID;
             outputHandler.addClientWS(ws);
             nextClientID++;
-            /*ws.on('message', function(message) {
-                //console.log('received: %s', message);
-            });*/
 
             shared.addWebSocketObjectSupport(ws);
             clients.push(ws);
@@ -52,17 +49,12 @@ var WebSocketServer = require('ws').Server,
                 ws.start = true;
                 var allStarted = true;
 
-                if (clients.length < 2) {
-                    allStarted = false;
-                }
-
-                /*
                 for (var i = 0; i < clients.length; i++) {
                     var client = clients[i];
                     if (!client.start) {
                         allStarted = false;
                     }
-                }*/
+                }
 
                 if (allStarted) {
 
@@ -70,7 +62,7 @@ var WebSocketServer = require('ws').Server,
                     var player_datas = [];
                     for (i = 0; i < clients.length; i++) {
                         client = clients[i];
-                        var player_info = {id: client.player_data.id, name : client.player_data.name };
+                        var player_info = {id: client.player_data.id, name : client.player_data.name, x: client.player_data.name.x, y : client.player_data.y };
                         player_infos.push(player_info);
                         player_datas.push(client.player_data);
                     }
@@ -88,7 +80,6 @@ var WebSocketServer = require('ws').Server,
                         }
                         return packet;
                     });
-
 
                     theWorld.startGame(player_datas);
                 }
