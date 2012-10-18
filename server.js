@@ -38,7 +38,7 @@ var WebSocketServer = require('ws').Server,
             };
 
             // Tell the outputHandler that we have a new client that should receive updates
-            outputHandler.addClientWS(client_data);
+            outputHandler.addClient(client_data);
 
             // Increment the nextClientID, that will be used to ID the next client
             nextClientID++;
@@ -110,9 +110,7 @@ var WebSocketServer = require('ws').Server,
                     var player_datas = [];
                     for (i = 0; i < clients.length; i++) {
                         client_data = clients[i];
-                        //var player_info = {id: client_data.player_data.id, name : client_data.player_data.name };
-                        //player_infos.push(player_info);
-                        player_datas.push(client.player_data);
+                        player_datas.push(client_data.player_data);
                     }
 
                     /**

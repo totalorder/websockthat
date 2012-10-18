@@ -118,18 +118,18 @@
 
     exports.ServerOutputHandler = function () {
         var tick_packet = null;
-        var clients = [];
+        var client_datas = [];
         var sendPacketToAllClients = function (packet, preprocessor) {
             if (packet.type != exports.PACKET_TYPES.TICK) {
                 console.log("sending packet to all clients", packet);
             }
-            for (var i = 0; i < clients.length; i++) {
-                var client = clients[i];
+            for (var i = 0; i < client_datas.length; i++) {
+                var client_data = client_datas[i];
                 if (preprocessor) {
-                    packet = preprocessor(client.client_id, packet);
+                    packet = preprocessor(client_data.id, packet);
                 }
 
-                client.sendObject(packet);
+                client_data.webSocket.sendObject(packet);
             }
         };
 
@@ -160,8 +160,8 @@
                 tick_packet = exports.createTickPacket(tick_id);
             },
 
-            addClientWS : function (ws) {
-                clients.push(ws);
+            addClient : function (client_data) {
+                client_datas.push(client_data);
             },
 
             gameOver : function () {
