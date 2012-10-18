@@ -1,12 +1,12 @@
 var input = require('./input.js');
 
 (function(exports){
-    exports.Player = function (id, name, input_device, input_handler, settings, x, y) {
+    exports.Player = function (id, name, input_device, input_handler, settings, x, y, direction, color) {
 
         var _x = x;
         var _y = y;
         var _lastCommand = input.COMMANDS.LEFT_RIGHT_UP;
-        var _direction = 45;
+        var _direction = direction;
         var _trail = [{x: _x, y: _y}];
         var alive = true;
         var getInputState = function () {
@@ -51,7 +51,7 @@ var input = require('./input.js');
             }
 
             //console.log(settings.MOVEMENT_SPEED, settings.LINE_SIZE);
-            var _trailTouchDistance = (settings.LINE_SIZE*2) / (settings.MOVEMENT_SPEED * deltaTime) ;
+            var _trailTouchDistance = ((settings.LINE_SIZE*2) / (settings.MOVEMENT_SPEED * deltaTime)) + 1;
 
             for (var i = 0; i < players.length; i++) {
                 player = players[i];
@@ -131,6 +131,7 @@ var input = require('./input.js');
             start : start,
             addTrailPoint : addTrailPoint,
             id : id,
+            color : color,
             isAlive : isAlive
         };
     };

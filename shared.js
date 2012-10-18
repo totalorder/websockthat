@@ -207,6 +207,68 @@
         };
     };
 
+    exports.LocalOutputHandler = function (inputHandler_onTick, onGameOver) {
+        var tick_packet = null;
+        var startGame = function (options, player_infos) {
+        };
+
+        return {
+            addTrailPoint : function (player_id, trail_point) {
+                exports.addTrailToTickPacket(tick_packet, player_id, trail_point);
+            },
+
+            newTick : function (tick_id) {
+                if(tick_packet) {
+                    inputHandler_onTick(tick_packet);
+                }
+                tick_packet = exports.createTickPacket(tick_id);
+            },
+
+            addClient : function (client_data) {
+            },
+
+            gameOver : function () {
+                onGameOver();
+            },
+
+            startGame : startGame
+        };
+    };
+
+    exports.LocalInputHandler = function () {
+        var _players = null;
+        var _started = false;
+        var _callbackRegistered = false;
+        var onTickReceived = function (packet) {
+            if (!_started) {
+                return;
+            }
+
+            for (var i = 0; i < _players.length; i++) {
+                var player = _players[i];
+                if (packet.players[player.id]) {
+                    player.addTrailPoint(packet.players[player.id]);
+                }
+            }
+        };
+
+        return {
+            start : function (players) {
+                _started = true;
+                _players = players;
+                _callbackRegistered = true;
+            },
+
+            stop : function () {
+                _started = false;
+            },
+
+            gameOver : function () {},
+
+            onTickReceived : onTickReceived
+        };
+    };
+
     exports.createDefaultOptions = function () {
         return {
             // The desired number of ticks per second
@@ -218,6 +280,17 @@
             GAME_WIDTH : 200,
             GAME_HEIGHT : 200
         };
+    };
+
+    exports.getColorForID = function (id) {
+        return {
+            0 : "orange",
+            1 : "green",
+            2 : "purple",
+            3 : "cyan",
+            4: "red",
+            5: "blue"
+        }[id];
     };
 })(typeof exports === 'undefined'? this['shared']={}: exports);
 

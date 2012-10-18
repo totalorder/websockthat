@@ -97,6 +97,7 @@
             ctx.clearRect(0, 0, canvas_size.width, canvas_size.height);
             for (var i = 0; i < players.length; i++) {
                 var trail = players[i].getTrail();
+                ctx.fillStyle = players[i].color;
                 var lastPoint = false;
                 for (var it = 0; it < trail.length; it++) {
                     var point = trail[it];

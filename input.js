@@ -47,7 +47,6 @@ var shared = require('./shared.js');
          */
         var getSpecialKeyCommand = function (keyCode) {
             switch (keyCode) {
-
                 case keys.start:
                     return exports.COMMANDS.START;
                     break;

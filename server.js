@@ -92,7 +92,6 @@ var WebSocketServer = require('ws').Server,
                 client_data.player_data.input_handler = local_input_handler;
                 // Mark the current client that it wants to start
                 client_data.start = true;
-
                 // Check if all clients have asked to start the game
                 var allStarted = true;
                 for (var i = 0; i < clients.length; i++) {
@@ -109,8 +108,8 @@ var WebSocketServer = require('ws').Server,
                     //var player_infos = [];
                     var player_datas = [];
                     for (i = 0; i < clients.length; i++) {
-                        client_data = clients[i];
-                        player_datas.push(client_data.player_data);
+                        var client_data_ = clients[i];
+                        player_datas.push(client_data_.player_data);
                     }
 
                     /**

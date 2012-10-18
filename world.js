@@ -4,9 +4,8 @@ var shared = require('./shared.js');
 var input = require('./input.js');
 
 (function(exports){
-    exports.World = function (inputHandler, outputHandler, options) {
+    exports.World = function (inputHandler, outputHandler, options, render) {
         console.log("creating the world!");
-
 
         // Define te game specific settings
         var TURNING_SPEED = options.TURNING_SPEED;
@@ -74,7 +73,7 @@ var input = require('./input.js');
             };
 
             if (!_gameStarted) {
-                var new_player = new player.Player(player_data.id, player_data.name, player_data.input_device, player_data.input_handler, player_settings, player_data.x, player_data.y);
+                var new_player = new player.Player(player_data.id, player_data.name, player_data.input_device, player_data.input_handler, player_settings, player_data.x, player_data.y, player_data.direction, player_data.color);
                 _players.push(new_player);
                 return new_player;
             }
@@ -91,7 +90,9 @@ var input = require('./input.js');
             var playerInputStates = [];
             var player;
             var i;
-            var deltaTime = _tickInterval / 1000;
+            // This should be dependent on _tickInterval if the game doesn't depend on all ticks
+            // being equally far apart
+            var deltaTime = _desiredTickInterval / 1000;
 
             // Fetch the input state from all players. This is done at the same time to ensure that all players'
             // input is sampled at the same time since it can change during the simulation-step
@@ -214,7 +215,9 @@ var input = require('./input.js');
 
                 // If _tick() returns true, shut everything down
                 } else {
-                    message = "Winner is " + _lastAlive.getName();
+                    if (_lastAlive) {
+                        message = "Winner is " + _lastAlive.getName();
+                    }
                     console.log(message);
                     _gameStarted = false;
 
@@ -261,6 +264,7 @@ var input = require('./input.js');
                     player_data = _player_datas[i];
                     player_data.x = options.GAME_WIDTH * 0.1 + Math.random() * options.GAME_WIDTH * 0.8;
                     player_data.y = options.GAME_HEIGHT * 0.1 + Math.random() * options.GAME_HEIGHT * 0.8;
+                    player_data.direction = Math.random() * 360;
                 }
             }
 
@@ -269,7 +273,9 @@ var input = require('./input.js');
             var player_infos = [];
             for (i = 0; i < _player_datas.length; i++) {
                 player_data = _player_datas[i];
-                var player_info = {id: player_data.id, name : player_data.name, x: player_data.x, y : player_data.y };
+                player_data.color = shared.getColorForID(player_data.id);
+                console.log("color", player_data.color, player_data.id);
+                var player_info = {id: player_data.id, name : player_data.name, x: player_data.x, y : player_data.y, color: player_data.color };
                 player_infos.push(player_info);
             }
 
@@ -277,13 +283,13 @@ var input = require('./input.js');
             if (outputHandler) {
                 console.log("got START from all players, sending players: ", player_infos);
                 outputHandler.startGame(options, player_infos);
+            }
 
-                if(!_renderingEngine) {
-                    _renderingEngine = new renderer.StubRenderer("canvas", rendering_settings, this);
-                }
-            } else {
-                if(!_renderingEngine) {
+            if(!_renderingEngine) {
+                if(render) {
                     _renderingEngine = new renderer.CanvasRenderer("canvas", rendering_settings, this);
+                } else {
+                    _renderingEngine = new renderer.StubRenderer("canvas", rendering_settings, this);
                 }
             }
 

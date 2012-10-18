@@ -58,7 +58,7 @@ var input = require("./input.js");
             // Passing in our ClientInputHandler will let the World notify it when the game starts and what
             // players will be in the game. The InputHandler will then be able to input data directly into
             // the players
-            clientWorld = new world.World(clientInputHandler, null, packet.options);
+            clientWorld = new world.World(clientInputHandler, null, packet.options, true);
 
             // Set the input_device for the local player to our LocalInputDevice and set it's input_handler
             // to a RemoteWSInputHandler that will relay all input-commands to the server
