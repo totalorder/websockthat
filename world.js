@@ -6,18 +6,21 @@ var input = require('./input.js');
 (function(exports){
     exports.World = function (inputHandler, outputHandler, options) {
         console.log("creating the world!");
+
+
+        // Define te game specific settings
         var TURNING_SPEED = options.TURNING_SPEED;
         var MOVEMENT_SPEED = options.MOVEMENT_SPEED;
         var LINE_SIZE = options.LINE_SIZE;
 
+        // Calculate the desired TPS and movement speed based on that we want one tick every LINE_SIZE distance traveled
         var DESIRED_TPS = (MOVEMENT_SPEED / LINE_SIZE) * MOVEMENT_SPEED;
         MOVEMENT_SPEED = LINE_SIZE;
 
+        // Set up internal data structures
         var _gameStarted = false;
         var _lastAlive;
         var _players = [];
-        var _functionCount = 0;
-        var _currentplayerIndex = 0;
         var _renderingEngine = null;
         var _desiredTickInterval = 1000 / DESIRED_TPS; // The desired interval between ticks
         var _tickStartTime = 0; // The absolute time when the last tick was started
@@ -26,13 +29,18 @@ var input = require('./input.js');
         var _logger = console.log;
         var _logData = "";
         var _tps_text = ""; // The text "Ticks per second" text drawn by the renderingEngine
+
+        // Recalculate the speeds based on the ticks per second
+        // TODO: Why?
         MOVEMENT_SPEED = MOVEMENT_SPEED * DESIRED_TPS;
         TURNING_SPEED = TURNING_SPEED * DESIRED_TPS;
 
+        // Define if we're going to filter the logging
         var LOGGING_FILTER = undefined;
 
         // Exposed by public function getTicksPerSecondText()
 
+        // Gather settings needed for rendering
         var rendering_settings = {
             LINE_SIZE : LINE_SIZE,
             GAME_WIDTH : options.GAME_WIDTH,
@@ -40,7 +48,7 @@ var input = require('./input.js');
         };
 
         /**
-         * Make sure that no one logs to the
+         * Log message if it passes any defined LOGGING_FILTER
          * @param message
          */
         var log = function (message, user) {
@@ -52,13 +60,9 @@ var input = require('./input.js');
             }
         };
 
-        var _log = function (message) {
-            log(message, 'playerHandler');
-        };
-
         /**
          * Add a player to the game. It's only allowed to add a player before the game has started
-         * @param player The player to add to the game
+         * @param player_data An object representing the player data
          */
         var _createPlayer = function (player_data) {
             var player_settings = {
@@ -77,41 +81,59 @@ var input = require('./input.js');
             return null;
         };
 
+        /**
+         * Run one tick of the simulation
+         * Gather input from all players, execute the simulation step, look for collissions and kill
+         * any collided players
+         */
         var _tick = function () {
+            // Set up internal data structures
             var playerInputStates = [];
             var player;
             var i;
             var deltaTime = _tickInterval / 1000;
 
+            // Fetch the input state from all players. This is done at the same time to ensure that all players'
+            // input is sampled at the same time since it can change during the simulation-step
             for (i = 0; i < _players.length; i++) {
                 player = _players[i];
                 playerInputStates.push(player.getInputState());
             }
 
+            // Notify the outputHandler that a new tick has started
+            // This will trigger it to send any data gathered in the last tick and reset any internal state
+            // TODO: Refactor this to be tickEnded since newTick will introduce a small delay before sending data
             outputHandler.newTick(_numberOfTicks);
 
+            // Run the simulation step for all players, passing along the outputHandler to send off any data generated
             for (i = 0; i < _players.length; i++) {
                 player = _players[i];
                 player.simulate(deltaTime, playerInputStates[i], outputHandler);
             }
 
+            // Check for collissions for all players and how close to the impact spot they are
+            // They are then sorted and killed in the order of closest to impact spot
             var collisions = [];
             for (i = 0; i < _players.length; i++) {
                 player = _players[i];
-                //console.log("player number", i);
                 var collission_distance = player.getCollision(deltaTime, _players);
                 if (collission_distance != null) {
                     collisions.push({'player': player, 'collision_distance': collission_distance, 'player_number' : i});
                 }
             }
 
+            // Sort our collissions in the order of closest to impact spot
             collisions.sort(function (left, right) {
                 return left.collision_distance - right.collision_distance;
             });
 
+            // Kill off players in the order of closest to impact spot
+            // End the simulation if there is only one player alive, making hen the winner
             for (i = 0; i < collisions.length; i++) {
                 player = collisions[i].player;
                 player.kill();
+
+                // Check if any one is still alive
                 var players_alive = 0;
                 for (var it = 0; it < _players.length; it++) {
                     if (_players[it].isAlive()) {
@@ -121,17 +143,25 @@ var input = require('./input.js');
                 }
 
                 console.log("removing player " + collisions[i].player_number);
+                // Remove the player from the simulation
+                // TODO: Keep the player in the _players list and check for isAlive when accessing the list instead
                 _players.splice(collisions[i].player_number, 1);
 
+                // End the simulation of one or less players are alive - GAME OVER
                 if (players_alive <= 1) {
-                    outputHandler.newTick(_numberOfTicks + 1);
+                    outputHandler.newTick(_numberOfTicks + 1); // TODO: Refactor to tickEnded
                     return true;
                 }
             }
 
+            // Increment the number of ticks to keep track of the ticks we send off to the clients
             _numberOfTicks++;
         };
 
+        /**
+         * Reset the world state and rendering engine state, getting ready to start a
+         * new game
+         */
         var clear = function() {
             if(_renderingEngine) {
                 _renderingEngine.clear();
@@ -140,27 +170,110 @@ var input = require('./input.js');
             _players = [];
         };
 
+        /**
+         * Start ticking and keep doing it until everybody is dead. When everybody is dead _tick() will return true
+         * and we shut stuff down
+         * Trigger _tick() at the specified interval and try to keep the interval at a good level
+         */
+        var startTicking = function (_restartCallback) {
+            var self = this;
+
+            console.log("starting server");
+            (function tick() {
+                // Runs the game simulation at a given ticks per second, slowing down if rendering or simulation is too slow
+                // Will run until end of game
+                var i;
+                var message;
+                var _tickComputationStartTime = new Date().getTime();
+
+                // Run one tick of the simulation and recalculate tick times if we cannot meet the desired tick rate
+                if (!_tick.call(self)) {
+
+                    // Measure the time of the computation and adjust the tick interval if it or the rendering time
+                    // is slower than the desired interval
+                    var frameRenderTimeBoundary = _renderingEngine.getFrameRenderTime() * 1.5;
+                    var _tickComputationTimeBondary = (new Date().getTime() - _tickComputationStartTime) * 1.5;
+                    if(_tickComputationTimeBondary > _desiredTickInterval || frameRenderTimeBoundary > _desiredTickInterval){
+                        if (_tickComputationTimeBondary > _desiredTickInterval) {
+                            _tickInterval = _tickComputationTimeBondary;
+                            _tps_text = (1000 / _tickInterval) + " (over desired tick computation boundary)";
+                        }
+
+                        if(frameRenderTimeBoundary > _tickInterval) {
+                            _tickInterval = frameRenderTimeBoundary;
+                            _tps_text = (1000 / _tickInterval) + " (over desired render boundary)";
+                        }
+                    } else {
+                        _tickInterval = _desiredTickInterval;
+                        _tps_text = (1000 / _tickInterval);
+                    }
+
+                    // Schedule the next tick
+                    setTimeout(tick, _tickInterval);
+                    _tickStartTime = new Date().getTime();
+
+                // If _tick() returns true, shut everything down
+                } else {
+                    message = "Winner is " + _lastAlive.getName();
+                    console.log(message);
+                    _gameStarted = false;
+
+                    // Notify everybody interested that its GAME OVER!
+                    if (outputHandler) {
+                        outputHandler.gameOver();
+                    }
+                    if (inputHandler) {
+                        inputHandler.gameOver();
+                    }
+
+                    if(_restartCallback) {
+                        _restartCallback();
+                    }
+                }
+            })();
+        };
+
+        /**
+         * Create a clean World and set up player objects, rendering engine and start ticking if
+         * an outputHandler is specified.
+         *
+         * @param _player_datas - A list of player_data objects representing each player in the game
+         * @param _restartCallback - The callback to notify when the game ends
+         */
         var startGame = function (_player_datas, _restartCallback) {
             if (_gameStarted) {
                 return;
             }
-            console.log("starting game");
-            var i;
-            var self = this;
 
+            console.log("starting game");
+
+            // Set up internal data structures
+            var i;
+            var player_data = null;
+
+            // Clear the world, cleaning up any data from previous runs. Will call clear on the rendering engine as well
             clear();
 
+            // Generate position data for each player if we're running with an outputHandler. If not, position data
+            // should already be present
+            if (outputHandler) {
+                for (i = 0; i < _player_datas.length; i++) {
+                    player_data = _player_datas[i];
+                    player_data.x = options.GAME_WIDTH * 0.1 + Math.random() * options.GAME_WIDTH * 0.8;
+                    player_data.y = options.GAME_HEIGHT * 0.1 + Math.random() * options.GAME_HEIGHT * 0.8;
+                }
+            }
+
+            // Set up player_info for each player, that will be passed to the outputHandler
+            // to be sent off to the clients
             var player_infos = [];
             for (i = 0; i < _player_datas.length; i++) {
-                var player_data = _player_datas[i];
-                if (outputHandler) {
-                        player_data.x = options.GAME_WIDTH * 0.1 + Math.random() * options.GAME_WIDTH * 0.8;
-                        player_data.y = options.GAME_HEIGHT * 0.1 + Math.random() * options.GAME_HEIGHT * 0.8;
-                }
+                player_data = _player_datas[i];
                 var player_info = {id: player_data.id, name : player_data.name, x: player_data.x, y : player_data.y };
                 player_infos.push(player_info);
             }
 
+            // Trigger a startGame-event on the outputHandler if it's present and set up a rendering engine
             if (outputHandler) {
                 console.log("got START from all players, sending players: ", player_infos);
                 outputHandler.startGame(options, player_infos);
@@ -174,70 +287,25 @@ var input = require('./input.js');
                 }
             }
 
+            // Create all players, start them, and add them to the rendering engine
             for (i = 0; i < _player_datas.length; i++) {
                 var new_player = _createPlayer(_player_datas[i]);
                 new_player.start();
-                // Make sure that all players are in the game
                 _renderingEngine.create(new_player);
             }
 
+            // Start everything!
             _renderingEngine.start();
             _gameStarted = true;
             if (outputHandler) {
-
-                console.log("starting server");
-                (function tick() {
-                    // Runs the game simulation at a given ticks per second, slowing down if rendering or simulation is too slow
-                    // Will run until end of game
-                    var i;
-                    var message;
-                    var _tickComputationStartTime = new Date().getTime();
-                    if (!_tick.call(self)) {
-
-                        // Measure the time of the computation and adjust the tick interval if it or the rendering time
-                        // is slower than the desired interval
-                        var frameRenderTimeBoundary = _renderingEngine.getFrameRenderTime() * 1.5;
-                        var _tickComputationTimeBondary = (new Date().getTime() - _tickComputationStartTime) * 1.5;
-                        if(_tickComputationTimeBondary > _desiredTickInterval || frameRenderTimeBoundary > _desiredTickInterval){
-                            if (_tickComputationTimeBondary > _desiredTickInterval) {
-                                _tickInterval = _tickComputationTimeBondary;
-                                _tps_text = (1000 / _tickInterval) + " (over desired tick computation boundary)";
-                            }
-
-                            if(frameRenderTimeBoundary > _tickInterval) {
-                                _tickInterval = frameRenderTimeBoundary;
-                                _tps_text = (1000 / _tickInterval) + " (over desired render boundary)";
-                            }
-                        } else {
-                            _tickInterval = _desiredTickInterval;
-                            _tps_text = (1000 / _tickInterval);
-                        }
-
-                        // Schedule the next tick
-                        setTimeout(tick, _tickInterval);
-                        _tickStartTime = new Date().getTime();
-                    } else {
-                        message = "Winner is " + _lastAlive.getName();
-                        console.log(message);
-                        _gameStarted = false;
-                        if (outputHandler) {
-                            outputHandler.gameOver();
-                        }
-                        if (inputHandler) {
-                            inputHandler.gameOver();
-                        }
-
-                        if(_restartCallback) {
-                            _restartCallback();
-                        }
-                    }
-                })();
+                // Start ticking will keep ticking with the simulation until everybody is dead
+                startTicking(_restartCallback);
             }
             if (inputHandler) {
+                // The input handler will listen to tick-data to feed the simulation
                 inputHandler.start(_players);
             }
         };
-
 
 
         var getTicksPerSecondText = function () {
