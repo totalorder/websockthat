@@ -53,7 +53,6 @@ var input = require("./input.js");
             }
         };
         var input_device = new input.LocalInputDevice(localPlayerSetting.keys, clientInputHandler.onInputReceived, specialKeysCommandCallback);
-        //var localInputHandler = input.LocalInputHandler();
         var player_data = {
             id: i,
             name : localPlayerSetting.name,

@@ -133,32 +133,4 @@ var shared = require('./shared.js');
             onInputCallback : onInputCallback
         };
     };
-
-    /**
-     * An input handler that reacts on incoming input by triggering the command on the local player object
-     */
-    exports.LocalInputHandler = function () {
-        var _started = false;
-        var player = null;
-        var player_setCommand = null;
-
-        return {
-            /**
-             * Enable the setCommand trigger
-             * @param the_player - A local player object
-             * @param player_setCommand_ - The function to call to set a command on the player
-             */
-            start : function (the_player, player_setCommand_) {
-                player = the_player;
-                player_setCommand = player_setCommand_;
-                _started = true;
-            },
-
-            setCommand : function (player_id, command) {
-                if (_started) {
-                    player_setCommand(command);
-                }
-            }
-        };
-    };
 })(typeof exports === 'undefined'? this['input']={}: exports);

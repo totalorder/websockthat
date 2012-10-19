@@ -170,7 +170,7 @@
         };
     };
 
-    exports.ClientInputHandler = function (webSocket) {
+    exports.WSReceivingInputHandler = function (webSocket) {
         var _players = null;
         var _started = false;
         var _callbackRegistered = false;
@@ -178,7 +178,7 @@
             if (!_started) {
                 return;
             }
-            //console.log("ClientInputHandler got TICK ", packet);
+            //console.log("WSReceivingInputHandler got TICK ", packet);
             for (var i = 0; i < _players.length; i++) {
                 var player = _players[i];
                 if (packet.players[player.id]) {
@@ -187,11 +187,6 @@
                 }
             }
         };
-
-        var onInputReceived = function (player_id, command) {
-            _simulator.addInput(player_id, command);
-        };
-
 
         return {
             start : function (players) {
@@ -214,7 +209,7 @@
      * An input handler that sends all incoming commands over a websocket to a remote server
      * @param webSocket
      */
-    exports.RemoteWSInputHandler = function (webSocket) {
+    exports.WSSendingInputHandler = function (webSocket) {
         var _started = false;
         var player = null;
 
