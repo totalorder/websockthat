@@ -128,6 +128,8 @@ var input = require('./input.js');
             return new Player(player_data.id, player_data.name, player_data.input_device, player_data.input_handler, player_settings, player_data.x, player_data.y, player_data.direction, player_data.color);
         };
 
+        var draw = function (ctx) {};
+
         var Player = function (id, name, input_device, input_handler, settings, x, y, direction, color) {
 
             var _x = x;
@@ -153,6 +155,31 @@ var input = require('./input.js');
                 var trail_point = {x: _x, y: _y};
                 _trail.push(trail_point);
                 outputHandler.addTrailPoint(id, trail_point);
+            };
+
+            var draw = function (ctx) {
+                var trail = _trail;
+                ctx.fillStyle = color;
+                var lastPoint = false;
+                for (var it = 0; it < trail.length; it++) {
+                    var point = trail[it];
+                    if(false && lastPoint) {
+                        ctx.beginPath();
+                        ctx.moveTo(lastPoint.x, lastPoint.y);
+                        ctx.lineTo(point.x, point.y);
+                        ctx.closePath();
+                        ctx.stroke();
+                    }
+                    //ctx.fillRect(Math.floor(point.x),100,10,10);
+                    //console.log(point);
+
+                    ctx.beginPath();
+                    ctx.arc(point.x, point.y, settings.LINE_SIZE, 0, Math.PI * 2, true);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    lastPoint = point;
+                }
             };
 
             var getCollision = function (deltaTime, players) {
@@ -245,6 +272,7 @@ var input = require('./input.js');
 
             return {
                 simulate: simulate,
+                draw: draw,
                 getTrail: getTrail,
                 getInputState: getInputState,
                 getCollision: getCollision,
@@ -265,7 +293,8 @@ var input = require('./input.js');
             addInput : addInput,
             start : start,
             setUpPlayerData : setUpPlayerData,
-            createPlayer : createPlayer
+            createPlayer : createPlayer,
+            draw : draw
         };
     };
 
