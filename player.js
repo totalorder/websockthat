@@ -107,7 +107,7 @@ var input = require('./input.js');
 
         var start = function () {
             if (input_device) {
-                input_device.start(this);
+                input_device.start(id);
             }
 
             if (input_handler) {

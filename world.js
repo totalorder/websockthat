@@ -76,7 +76,7 @@ var achtung = require('./achtung.js');
             };
 
             if (!_gameStarted) {
-                var new_player = new player.Player(player_data.id, player_data.name, player_data.input_device, player_data.input_handler, player_settings, player_data.x, player_data.y, player_data.direction, player_data.color);
+                var new_player = simulator.createPlayer(player_data, player_settings);
                 _players.push(new_player);
                 return new_player;
             }
@@ -158,8 +158,9 @@ var achtung = require('./achtung.js');
                 } else {
                     if (_lastAlive) {
                         message = "Winner is " + _lastAlive.getName();
+                        console.log(message);
                     }
-                    console.log(message);
+
                     _gameStarted = false;
 
                     // Notify everybody interested that its GAME OVER!
@@ -203,9 +204,7 @@ var achtung = require('./achtung.js');
             if (outputHandler) {
                 for (i = 0; i < _player_datas.length; i++) {
                     player_data = _player_datas[i];
-                    player_data.x = options.GAME_WIDTH * 0.1 + Math.random() * options.GAME_WIDTH * 0.8;
-                    player_data.y = options.GAME_HEIGHT * 0.1 + Math.random() * options.GAME_HEIGHT * 0.8;
-                    player_data.direction = Math.random() * 360;
+                    simulator.setUpPlayerData(player_data);
                 }
             }
 
@@ -215,7 +214,6 @@ var achtung = require('./achtung.js');
             for (i = 0; i < _player_datas.length; i++) {
                 player_data = _player_datas[i];
                 player_data.color = shared.getColorForID(player_data.id);
-                console.log("color", player_data.color, player_data.id);
                 var player_info = {id: player_data.id, name : player_data.name, x: player_data.x, y : player_data.y, color: player_data.color };
                 player_infos.push(player_info);
             }
@@ -253,7 +251,7 @@ var achtung = require('./achtung.js');
             }
             if (inputHandler) {
                 // The input handler will listen to tick-data to feed the simulation
-                inputHandler.start(_players);
+                inputHandler.start(_players, simulator);
             }
         };
 

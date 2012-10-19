@@ -19,9 +19,10 @@ var shared = require('./shared.js');
      * @param specialKeyCommandsCallback - The callback that should handle special keys,
      *                                     that are not player controlling keys. For example 'start'
      */
-    exports.LocalInputDevice = function (keys, specialKeyCommandsCallback) {
+    exports.LocalInputDevice = function (keys, onCommandCallback, specialKeyCommandsCallback) {
         var _lastCommandKeyCode = null;
-        var _player = null;
+        var _player_id = null;
+        var _onCommandCallback = onCommandCallback;
 
         /**
          * Get the COMMAND that represents keyCode among the commands that control the player
@@ -61,12 +62,12 @@ var shared = require('./shared.js');
          */
         var doKeyDown = function (evt){
             var issuedCommand = null;
-            if (_player) {
+            if (_player_id != null) {
                 issuedCommand = getPlayerKeyCommand(evt.keyCode);
             }
             if (issuedCommand) {
                 _lastCommandKeyCode = evt.keyCode;
-                _player.setCommand(issuedCommand);
+                _onCommandCallback(_player_id, issuedCommand);
             } else {
 
                 issuedCommand = getSpecialKeyCommand(evt.keyCode);
@@ -82,10 +83,10 @@ var shared = require('./shared.js');
          * @param evt - keyboard event
          */
         var doKeyUp = function (evt){
-            if(_player) {
+            if(_player_id != null) {
                 if(evt.keyCode == _lastCommandKeyCode) {
                     _lastCommandKeyCode = null;
-                    _player.setCommand(exports.COMMANDS.LEFT_RIGHT_UP);
+                    _onCommandCallback(_player_id, exports.COMMANDS.LEFT_RIGHT_UP);
                 }
             }
         };
@@ -95,12 +96,8 @@ var shared = require('./shared.js');
         window.addEventListener('keyup',doKeyUp,true);
 
         return {
-            /**
-             * Set _player to the current player. Will enable the doKeyDown/Up functions that operate on players
-             * @param player
-             */
-            start : function (player) {
-                _player = player;
+            start : function (player_id) {
+                _player_id = player_id;
             }
         };
     };
@@ -109,9 +106,14 @@ var shared = require('./shared.js');
      * An input device that exposes a listener callback onInputCallback
      * which will trigger player.setCommand()
      */
-    exports.WSInputDevice = function () {
+    exports.WSInputDevice = function (webSocket, onCommandCallback, player_id) {
         var _started = false;
-        var _player = null;
+
+        var onInputCallback = function (input_command) {
+            if (_started) {
+                onCommandCallback(player_id, input_command);
+            }
+        };
 
         return {
             /**
@@ -119,19 +121,16 @@ var shared = require('./shared.js');
              * @param the_player
              */
             start : function (the_player) {
-                _player = the_player;
+                if (!_started) {
+                    // Hook up the InputDevice.onInputCallback to all incoming packets of type INPUT
+                    // from the clients websocket
+                    webSocket.registerReceivedPacketCallback(shared.PACKET_TYPES.INPUT, function (packet) { return packet.command; }, onInputCallback);
+                }
+
                 _started = true;
             },
 
-            /**
-             * Trigger a COMMAND on _player
-             * @param input_command
-             */
-            onInputCallback : function (input_command) {
-                if (_started) {
-                    _player.setCommand(input_command);
-                }
-            }
+            onInputCallback : onInputCallback
         };
     };
 
@@ -155,45 +154,9 @@ var shared = require('./shared.js');
                 _started = true;
             },
 
-            /**
-             * Sets the given COMMAND on the player object
-             * @param command
-             */
-            setCommand : function (command) {
+            setCommand : function (player_id, command) {
                 if (_started) {
                     player_setCommand(command);
-                }
-            }
-        };
-    };
-
-    /**
-     * An input handler that sends all incoming commands over a websocket to a remote server
-     * @param webSocket
-     */
-    exports.RemoteWSInputHandler = function (webSocket) {
-        var _started = false;
-        var player = null;
-        var player_setCommand = null;
-
-        return {
-            /**
-             * Enable the setCommand trigger
-             * @param the_player - Never used. Just obeying the interface of an InputHandler
-             * @param player_setCommand_ - Never used. Just obeying the interface of an InputHandler
-             */
-            start : function (the_player, player_setCommand_) {
-                player = the_player;
-                _started = true;
-            },
-
-            /**
-             * Send the given COMMAND to a remote server through a websocket
-             * @param command
-             */
-            setCommand : function (command) {
-                if (_started) {
-                    webSocket.sendObject(shared.createInputPacket(command));
                 }
             }
         };

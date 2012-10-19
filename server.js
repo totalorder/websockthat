@@ -19,7 +19,11 @@ var WebSocketServer = require('ws').Server,
         var outputHandler = shared.ServerOutputHandler();
         var clients = [];
         var options = shared.createDefaultOptions();
-        var theWorld = world.World(null, outputHandler, options);
+        // Create an InputHandler that will apply all the commands received by
+        // the InputDevice to the player-object
+        var local_input_handler = shared.LocalInputHandler();
+
+        var theWorld = world.World(local_input_handler, outputHandler, options);
         var gameRunning = false;
         var nextClientID = 0;
 
@@ -77,15 +81,8 @@ var WebSocketServer = require('ws').Server,
 
                 // Create an InputDevice that will listen to incoming websocket data
                 // TODO: Refactor this
-                var ws_input_device = input.WSInputDevice();
 
-                // Create an InputHandler that will apply all the commands received by
-                // the InputDevice to the player-object
-                var local_input_handler = input.LocalInputHandler();
-
-                // Hook up the InputDevice.onInputCallback to all incoming packets of type INPUT
-                // from the clients websocket
-                clientWebSocket.registerReceivedPacketCallback(shared.PACKET_TYPES.INPUT, function (packet) { return packet.command; }, ws_input_device.onInputCallback);
+                var ws_input_device = input.WSInputDevice(clientWebSocket, local_input_handler.onInputReceived, client_data.id);
 
                 // Set up the client_data with the InputDevice and InputHandler and
                 client_data.player_data.input_device = ws_input_device;

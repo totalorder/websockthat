@@ -19,7 +19,7 @@ var input = require('./input.js');
 
         var populatePlayersMap = function () {
             _playersMap = {};
-            for (var i; i < _players.length; i++) {
+            for (var i = 0; i < _players.length; i++) {
                 _playersMap[_players[i].id] = _players[i];
             }
         };
@@ -27,17 +27,18 @@ var input = require('./input.js');
          // Do this in setup/teardown
 
         var addInput = function (player_id, input_command) {
-            inputQueue.push({player_id : player_id, input_command : input_command});
+            //inputQueue.push({player_id : player_id, input_command : input_command});
+            _playersMap[player_id].setInternalInputCommand(input_command);
         };
 
-        var applyInput = function () {
+        /*var applyInput = function () {
             for (var i; i < inputQueue.length; i++) {
                 var inputCommand = inputQueue[i];
                 if (_playersMap[inputCommand.player_id]) {
                     _playersMap[inputCommand.player_id].setInternalInputCommand(inputCommand.input_command);
                 }
             }
-        };
+        };*/
 
         /**
          * Run one tick of the simulation
@@ -117,12 +118,155 @@ var input = require('./input.js');
             populatePlayersMap();
         };
 
+        var setUpPlayerData = function (player_data) {
+            player_data.x = options.GAME_WIDTH * 0.1 + Math.random() * options.GAME_WIDTH * 0.8;
+            player_data.y = options.GAME_HEIGHT * 0.1 + Math.random() * options.GAME_HEIGHT * 0.8;
+            player_data.direction = Math.random() * 360;
+        };
+
+        var createPlayer = function (player_data, player_settings) {
+            return new Player(player_data.id, player_data.name, player_data.input_device, player_data.input_handler, player_settings, player_data.x, player_data.y, player_data.direction, player_data.color);
+        };
+
+        var Player = function (id, name, input_device, input_handler, settings, x, y, direction, color) {
+
+            var _x = x;
+            var _y = y;
+            var _lastCommand = input.COMMANDS.LEFT_RIGHT_UP;
+            var _direction = direction;
+            var _trail = [{x: _x, y: _y}];
+            var alive = true;
+            var getInputState = function () {
+                return _lastCommand;
+            };
+
+            var simulate = function (deltaTime, inputState, outputHandler) {
+                if (inputState == input.COMMANDS.LEFT_DOWN) {
+                    _direction += settings.TURNING_SPEED * deltaTime;
+                } else if (inputState == input.COMMANDS.RIGHT_DOWN) {
+                    _direction -= settings.TURNING_SPEED * deltaTime;
+                }
+                //console.log(deltaTime);
+                _x += Math.sin(_direction * (Math.PI/180)) * deltaTime * settings.MOVEMENT_SPEED;
+                _y += Math.cos(_direction * (Math.PI/180)) * deltaTime * settings.MOVEMENT_SPEED;
+
+                var trail_point = {x: _x, y: _y};
+                _trail.push(trail_point);
+                outputHandler.addTrailPoint(id, trail_point);
+            };
+
+            var getCollision = function (deltaTime, players) {
+                var player;
+                var collisions = [];
+
+                if (_x < settings.LINE_SIZE / 2) {
+                    return settings.LINE_SIZE / 2 - _x; // Not accurate
+                }
+                if (_x > settings.GAME_WIDTH - settings.LINE_SIZE / 2) {
+                    return _x - (settings.GAME_WIDTH - settings.LINE_SIZE / 2);
+                }
+                if (_y < settings.LINE_SIZE / 2) {
+                    return settings.LINE_SIZE / 2 - _y; // Not accurate
+                }
+
+                if (_y > settings.GAME_HEIGHT - settings.LINE_SIZE / 2) {
+                    return _y - (settings.GAME_HEIGHT - settings.LINE_SIZE / 2);
+                }
+
+                //console.log(settings.MOVEMENT_SPEED, settings.LINE_SIZE);
+                var _trailTouchDistance = ((settings.LINE_SIZE*2) / (settings.MOVEMENT_SPEED * deltaTime)) + 1;
+
+                for (var i = 0; i < players.length; i++) {
+                    player = players[i];
+
+                    var trail = player.getTrail();
+                    var stopAt = player != this ? trail.length : Math.max(-1, trail.length - _trailTouchDistance);
+                    for (var ti = 0; ti < stopAt; ti++) {
+                        var point = trail[ti];
+                        var distance = Math.sqrt(Math.pow(_x - point.x,2) + Math.pow(_y - point.y,2));
+                        if (distance <= settings.LINE_SIZE) {
+                            collisions.push(distance);
+                        }
+                    }
+                }
+
+                collisions.sort(function (left, right) {
+                    return left.collision_distance - right.collision_distance;
+                });
+
+                if (collisions) {
+                    return collisions[0];
+                } else {
+                    return null;
+                }
+            };
+
+            var getTrail = function () {
+                return _trail;
+            };
+
+            var kill = function () {
+                alive = false;
+                console.log("Player " + id + " " +  name + " died!");
+            };
+
+            var getName = function () {
+                return name;
+            };
+
+            var isAlive = function () {
+                return alive;
+            };
+
+            var setCommand = function (command) {
+                if (input_handler) {
+                    input_handler.setCommand(command);
+                }
+            };
+
+            var _setCommand = function (command) {
+                _lastCommand = command;
+            };
+
+            var start = function () {
+                if (input_device) {
+                    input_device.start(id);
+                }
+
+                if (input_handler) {
+                    input_handler.start(this, _setCommand);
+                }
+
+            };
+
+            var addTrailPoint = function (point) {
+                _trail.push(point);
+            };
+
+            return {
+                simulate: simulate,
+                getTrail: getTrail,
+                getInputState: getInputState,
+                getCollision: getCollision,
+                setCommand: setCommand,
+                kill: kill,
+                getName: getName,
+                start : start,
+                addTrailPoint : addTrailPoint,
+                id : id,
+                color : color,
+                isAlive : isAlive,
+                setInternalInputCommand : _setCommand // TODO: Not private anymore. Clean up
+            };
+        };
+
         return {
             simulate : simulate,
             addInput : addInput,
-            start : start
-
+            start : start,
+            setUpPlayerData : setUpPlayerData,
+            createPlayer : createPlayer
         };
-
     };
+
 })(typeof exports === 'undefined'? this['achtung']={}: exports);

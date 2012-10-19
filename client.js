@@ -37,10 +37,13 @@ var input = require("./input.js");
         var clientInputHandler = shared.ClientInputHandler(webSocket);
         var clientWorld = null;
 
+        var input_handler = new shared.RemoteWSInputHandler(webSocket);
+
         // Set up an InputDevice that will listen to the keys pressed by the user and react to them
         // Passing along specialKeyCommandsCallback that will send a START packet to the server when
         // the InputDevice detects the START-input-event
-        var input_device = new input.LocalInputDevice(localPlayerSettings.keys, function (command) {
+        // TODO: Should not need to supply the input_handler to the InputDevice
+        var input_device = new input.LocalInputDevice(localPlayerSettings.keys, input_handler.onInputReceived, function (command) {
             if (command == input.COMMANDS.START) {
                 webSocket.sendObject(shared.createStartPacket());
                 console.log("waiting for players packet!");
@@ -66,7 +69,7 @@ var input = require("./input.js");
                 var player_data = packet.players[i];
                 if(player_data.you) {
                     player_data.input_device = input_device;
-                    player_data.input_handler = new input.RemoteWSInputHandler(webSocket);
+                    player_data.input_handler = input_handler;
                 }
             }
 

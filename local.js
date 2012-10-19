@@ -36,24 +36,13 @@ var input = require("./input.js");
     var localOutputHandler = shared.LocalOutputHandler(clientInputHandler.onTickReceived, onGameOver);
     var clientWorld = null;
 
-    //webSocket.registerReceivedPacketCallback(shared.PACKET_TYPES.START_DATA, function (packet) { return packet }, function (packet) {
-
-    // Create a new World passing along the game-options received from the server
-    // Passing in our ClientInputHandler will let the World notify it when the game starts and what
-    // players will be in the game. The InputHandler will then be able to input data directly into
-    // the players
-
-
     clientWorld = new world.World(clientInputHandler, localOutputHandler, shared.createDefaultOptions(), true);
 
-    // Set up an InputDevice that will listen to the keys pressed by the user and react to them
-    // Passing along specialKeyCommandsCallback that will send a START packet to the server when
-    // the InputDevice detects the START-input-event
     var player_datas = [];
 
     for (var i = 0; i < localPlayerSettings.length; i++) {
         var localPlayerSetting = localPlayerSettings[i];
-        var input_device = new input.LocalInputDevice(localPlayerSetting.keys, function (command) {
+        var specialKeysCommandCallback = function (command) {
             if (command == input.COMMANDS.START) {
                 // Start the game, giving it a list of player_data-objects
                 if(!gameStarted) {
@@ -62,19 +51,20 @@ var input = require("./input.js");
                     gameStarted = true;
                 }
             }
-        });
-        var localInputHandler = input.LocalInputHandler();
+        };
+        var input_device = new input.LocalInputDevice(localPlayerSetting.keys, clientInputHandler.onInputReceived, specialKeysCommandCallback);
+        //var localInputHandler = input.LocalInputHandler();
         var player_data = {
             id: i,
             name : localPlayerSetting.name,
-            input_handler : localInputHandler,
+            input_handler : clientInputHandler,
             input_device : input_device
         };
 
         player_datas.push(player_data);
     }
 
-    // We're all set up. Wait for our player (and all other players) to press start, and let the game begin!
+    // We're all set up. Wait for one of our player to press start, and let the games begin!
     console.log("PRESS START!");
 })();
 

@@ -190,6 +190,11 @@
             }
         };
 
+        var onInputReceived = function (player_id, command) {
+            _simulator.addInput(player_id, command);
+        };
+
+
         return {
             start : function (players) {
                 _started = true;
@@ -203,6 +208,33 @@
 
             stop : function () {
                 _started = false;
+            }
+        };
+    };
+
+    /**
+     * An input handler that sends all incoming commands over a websocket to a remote server
+     * @param webSocket
+     */
+    exports.RemoteWSInputHandler = function (webSocket) {
+        var _started = false;
+        var player = null;
+
+        return {
+            /**
+             * Enable the setCommand trigger
+             * @param the_player - Never used. Just obeying the interface of an InputHandler
+             * @param player_setCommand_ - Never used. Just obeying the interface of an InputHandler
+             */
+            start : function (the_player, player_setCommand_) {
+                if (_started) {
+                    player = the_player;
+                    _started = true;
+                }
+            },
+
+            onInputReceived : function (player_id, command) {
+                webSocket.sendObject(exports.createInputPacket(command));
             }
         };
     };
@@ -239,6 +271,8 @@
         var _players = null;
         var _started = false;
         var _callbackRegistered = false;
+        var _simulator = null;
+
         var onTickReceived = function (packet) {
             if (!_started) {
                 return;
@@ -252,9 +286,14 @@
             }
         };
 
+        var onInputReceived = function (player_id, command) {
+            _simulator.addInput(player_id, command);
+        };
+
         return {
-            start : function (players) {
+            start : function (players, simulator) {
                 _started = true;
+                _simulator = simulator;
                 _players = players;
                 _callbackRegistered = true;
             },
@@ -265,7 +304,8 @@
 
             gameOver : function () {},
 
-            onTickReceived : onTickReceived
+            onTickReceived : onTickReceived,
+            onInputReceived : onInputReceived
         };
     };
 
