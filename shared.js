@@ -117,7 +117,7 @@
     };
 
     exports.ServerOutputHandler = function () {
-        var tick_packet = null;
+        var tick_packet = exports.createTickPacket(0);;
         var client_datas = [];
         var sendPacketToAllClients = function (packet, preprocessor) {
             if (packet.type != exports.PACKET_TYPES.TICK) {
@@ -153,10 +153,8 @@
                 exports.addTrailToTickPacket(tick_packet, player_id, trail_point);
             },
 
-            newTick : function (tick_id) {
-                if(tick_packet) {
-                    sendPacketToAllClients(tick_packet);
-                }
+            tickEnded : function (tick_id) {
+                sendPacketToAllClients(tick_packet);
                 tick_packet = exports.createTickPacket(tick_id);
             },
 
@@ -240,7 +238,7 @@
     };
 
     exports.LocalOutputHandler = function (inputHandler_onTick, onGameOver) {
-        var tick_packet = null;
+        var tick_packet = exports.createTickPacket(0);
         var startGame = function (options, player_infos) {
         };
 
@@ -249,10 +247,8 @@
                 exports.addTrailToTickPacket(tick_packet, player_id, trail_point);
             },
 
-            newTick : function (tick_id) {
-                if(tick_packet) {
-                    inputHandler_onTick(tick_packet);
-                }
+            tickEnded : function (tick_id) {
+                inputHandler_onTick(tick_packet);
                 tick_packet = exports.createTickPacket(tick_id);
             },
 

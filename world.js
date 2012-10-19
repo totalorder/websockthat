@@ -89,15 +89,16 @@ var achtung = require('./achtung.js');
          * any collided players
          */
         var _tick = function () {
-            outputHandler.newTick(_numberOfTicks);
             var deltaTime = _desiredTickInterval / 1000;
             var result = simulator.simulate(deltaTime);
+            _numberOfTicks++;
+            outputHandler.tickEnded(_numberOfTicks);
             if (result) {
                 return result;
             }
 
             // Increment the number of ticks to keep track of the ticks we send off to the clients
-            _numberOfTicks++;
+
         };
 
         /**
@@ -234,7 +235,6 @@ var achtung = require('./achtung.js');
 
             // Create all players, start them, and add them to the rendering engine
             for (i = 0; i < _player_datas.length; i++) {
-                // TODO: Let the simulator do this
                 var new_player = _createPlayer(_player_datas[i]);
                 new_player.start();
                 _renderingEngine.create(new_player);

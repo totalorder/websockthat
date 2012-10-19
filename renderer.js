@@ -193,10 +193,6 @@
                 return frameRenderTime;
             },
 
-            newTick : function() {
-
-            },
-
             create: function (player) {
                 players.push(player);
             },
@@ -216,9 +212,6 @@
         return {
             getFrameRenderTime : function() {
                 return 0;
-            },
-
-            newTick : function() {
             },
 
             create: function (id, x, y, hp, name) {
