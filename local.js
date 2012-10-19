@@ -1,6 +1,8 @@
 var shared = require("./shared.js");
 var world = require("./world.js");
 var input = require("./input.js");
+var config = require("./config.js");
+var game = require("./" + config.CONFIG.game_package + ".js");
 
 (function () { // Don't pollute the global namespace
 
@@ -18,7 +20,6 @@ var input = require("./input.js");
             right : 188,
             start : 0}
         }
-
     ];
 
     // Set up an InputHandler that will listen for and react to all incoming data that is about the in-game
@@ -36,7 +37,7 @@ var input = require("./input.js");
     var localOutputHandler = shared.LocalOutputHandler(clientInputHandler.onTickReceived, onGameOver);
     var clientWorld = null;
 
-    clientWorld = new world.World(clientInputHandler, localOutputHandler, shared.createDefaultOptions(), true);
+    clientWorld = new world.World(clientInputHandler, localOutputHandler, game.createDefaultOptions(), true);
 
     var player_datas = [];
 

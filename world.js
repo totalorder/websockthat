@@ -2,13 +2,14 @@ var renderer = require('./renderer.js');
 var player = require('./player.js');
 var shared = require('./shared.js');
 var input = require('./input.js');
-var achtung = require('./achtung.js');
+var config = require("./config.js"),
+    game = require("./" + config.CONFIG.game_package + ".js");
 
 (function(exports){
     exports.World = function (inputHandler, outputHandler, options, render) {
         console.log("creating the world!");
 
-        var simulator = achtung.AchtungSimulator(outputHandler, options);
+        var simulator = game.getSimulatorClass()(outputHandler, options);
 
         // Define te game specific settings
         var TURNING_SPEED = options.TURNING_SPEED;
@@ -221,7 +222,7 @@ var achtung = require('./achtung.js');
 
             // Trigger a startGame-event on the outputHandler if it's present and set up a rendering engine
             if (outputHandler) {
-                console.log("got START from all players, sending players: ", player_infos);
+                console.log("got START from all players, sending players");
                 outputHandler.startGame(options, player_infos);
             }
 

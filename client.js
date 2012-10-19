@@ -1,11 +1,12 @@
 var shared = require("./shared.js");
 var world = require("./world.js");
 var input = require("./input.js");
+var config = require("./config.js");
 
 (function () { // Don't pollute the global namespace
 
     // Create a new WebSocket client
-    var webSocket = new window.WebSocket('ws://127.0.0.1:8006');
+    var webSocket = new window.WebSocket('ws://' + config.CONFIG.connect_to_address + ':' + config.CONFIG.connect_to_port + '/');
 
     // Set up settings for the local player
     var localPlayerSettings = {

@@ -1,8 +1,11 @@
 var WebSocketServer = require('ws').Server,
     shared = require('./shared.js'),
     world = require('./world.js'),
-    input = require('./input.js');
-    player = require('./player.js');
+    input = require('./input.js'),
+    player = require('./player.js'),
+    config = require("./config.js"),
+    game = require("./" + config.CONFIG.game_package + ".js");
+
 
 (function(exports){
     /**
@@ -10,15 +13,16 @@ var WebSocketServer = require('ws').Server,
      * requested it
      */
     exports.Server = function () {
+
         // Create a new WebSocketServer and start listening
-        var address = {host: '127.0.0.1', port: 8006};
+        var address = {host: config.CONFIG.bind_to_address, port: config.CONFIG.bind_to_port};
         var webSocketServer = new WebSocketServer(address);
         console.log("listening to ", address);
 
         // Set up an output handler, default options and create a World
         var outputHandler = shared.ServerOutputHandler();
         var clients = [];
-        var options = shared.createDefaultOptions();
+        var options = game.createDefaultOptions();
         // Create an InputHandler that will apply all the commands received by
         // the InputDevice to the player-object
         var local_input_handler = shared.LocalInputHandler();

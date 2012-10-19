@@ -269,4 +269,20 @@ var input = require('./input.js');
         };
     };
 
+    exports.createDefaultOptions = function () {
+        return {
+            // The desired number of ticks per second
+            DESIRED_TPS : 20,
+            TURNING_SPEED : 10,
+            MOVEMENT_SPEED : 10,
+            LINE_SIZE : 3,
+            GAME_WIDTH : 200,
+            GAME_HEIGHT : 200
+        };
+    };
+
+    exports.getSimulatorClass = function () {
+        return exports.AchtungSimulator;
+    };
+
 })(typeof exports === 'undefined'? this['achtung']={}: exports);
