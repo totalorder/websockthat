@@ -2,10 +2,13 @@ var renderer = require('./renderer.js');
 var player = require('./player.js');
 var shared = require('./shared.js');
 var input = require('./input.js');
+var achtung = require('./achtung.js');
 
 (function(exports){
     exports.World = function (inputHandler, outputHandler, options, render) {
         console.log("creating the world!");
+
+        var simulator = achtung.AchtungSimulator(outputHandler, options);
 
         // Define te game specific settings
         var TURNING_SPEED = options.TURNING_SPEED;
@@ -86,73 +89,11 @@ var input = require('./input.js');
          * any collided players
          */
         var _tick = function () {
-            // Set up internal data structures
-            var playerInputStates = [];
-            var player;
-            var i;
-            // This should be dependent on _tickInterval if the game doesn't depend on all ticks
-            // being equally far apart
-            var deltaTime = _desiredTickInterval / 1000;
-
-            // Fetch the input state from all players. This is done at the same time to ensure that all players'
-            // input is sampled at the same time since it can change during the simulation-step
-            for (i = 0; i < _players.length; i++) {
-                player = _players[i];
-                playerInputStates.push(player.getInputState());
-            }
-
-            // Notify the outputHandler that a new tick has started
-            // This will trigger it to send any data gathered in the last tick and reset any internal state
-            // TODO: Refactor this to be tickEnded since newTick will introduce a small delay before sending data
             outputHandler.newTick(_numberOfTicks);
-
-            // Run the simulation step for all players, passing along the outputHandler to send off any data generated
-            for (i = 0; i < _players.length; i++) {
-                player = _players[i];
-                player.simulate(deltaTime, playerInputStates[i], outputHandler);
-            }
-
-            // Check for collissions for all players and how close to the impact spot they are
-            // They are then sorted and killed in the order of closest to impact spot
-            var collisions = [];
-            for (i = 0; i < _players.length; i++) {
-                player = _players[i];
-                var collission_distance = player.getCollision(deltaTime, _players);
-                if (collission_distance != null) {
-                    collisions.push({'player': player, 'collision_distance': collission_distance, 'player_number' : i});
-                }
-            }
-
-            // Sort our collissions in the order of closest to impact spot
-            collisions.sort(function (left, right) {
-                return left.collision_distance - right.collision_distance;
-            });
-
-            // Kill off players in the order of closest to impact spot
-            // End the simulation if there is only one player alive, making hen the winner
-            for (i = 0; i < collisions.length; i++) {
-                player = collisions[i].player;
-                player.kill();
-
-                // Check if any one is still alive
-                var players_alive = 0;
-                for (var it = 0; it < _players.length; it++) {
-                    if (_players[it].isAlive()) {
-                        players_alive ++;
-                        _lastAlive = player;
-                    }
-                }
-
-                console.log("removing player " + collisions[i].player_number);
-                // Remove the player from the simulation
-                // TODO: Keep the player in the _players list and check for isAlive when accessing the list instead
-                _players.splice(collisions[i].player_number, 1);
-
-                // End the simulation of one or less players are alive - GAME OVER
-                if (players_alive <= 1) {
-                    outputHandler.newTick(_numberOfTicks + 1); // TODO: Refactor to tickEnded
-                    return true;
-                }
+            var deltaTime = _desiredTickInterval / 1000;
+            var result = simulator.simulate(deltaTime);
+            if (result) {
+                return result;
             }
 
             // Increment the number of ticks to keep track of the ticks we send off to the clients
@@ -300,6 +241,8 @@ var input = require('./input.js');
                 new_player.start();
                 _renderingEngine.create(new_player);
             }
+
+            simulator.start(_players);
 
             // Start everything!
             _renderingEngine.start();

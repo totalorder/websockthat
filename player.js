@@ -132,7 +132,8 @@ var input = require('./input.js');
             addTrailPoint : addTrailPoint,
             id : id,
             color : color,
-            isAlive : isAlive
+            isAlive : isAlive,
+            setInternalInputCommand : _setCommand // TODO: Not private anymore. Clean up
         };
     };
 })(typeof exports === 'undefined'? this['player']={}: exports);

@@ -1,0 +1,5 @@
+refactor all input to go through a Simulator
+Kill off the input.WSInputDevice
+let the Simulator give all commands to the OutputHandler
+Kill off all TODO-comments
+Make pong!
