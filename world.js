@@ -228,7 +228,7 @@ var config = require("./config.js"),
 
             if(!_renderingEngine) {
                 if(render) {
-                    _renderingEngine = new renderer.CanvasRenderer("canvas", rendering_settings, this);
+                    _renderingEngine = new renderer.SVGRenderer("canvas", rendering_settings, this);
                 } else {
                     _renderingEngine = new renderer.StubRenderer("canvas", rendering_settings, this);
                 }

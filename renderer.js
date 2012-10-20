@@ -47,10 +47,6 @@
         ctx.strokeStyle="rgb(0,0,0)";
 
         var running = false;
-        /*var scale = {
-            x: canvas_size.width / width,
-            y: canvas_size.height / height
-        };*/
 
         var redrawLoop = function () {
             // Draws to the canvas at a given frames per second, slowing down FPS if rendering is too slow
@@ -120,53 +116,6 @@
                 }
             }
 
-            /*
-            for (i = 0; i < players.length; i++) {
-                trail = players[i].getTrail();
-                for (it = 0; it < trail.length; it++) {
-                    point = trail[it];
-                    //console.log(point.distance);
-                    if(point.distance != undefined) {
-                        ctx.fillStyle="rgb(" + Math.max(0, 255 - Math.floor(point.distance)) + ",0, 0)";
-                    } else {
-                        ctx.lineWidth = 1;
-                        ctx.fillStyle="rgb(128,128,128)";
-                    }
-
-                    ctx.beginPath();
-                    ctx.arc(point.x, point.y, settings.LINE_SIZE, 0, Math.PI * 2, true);
-                    ctx.closePath();
-                    ctx.fill();
-                    if(point.distance == undefined) {
-                        ctx.stroke();
-                    }
-
-                }
-            }
-
-            for (i = 0; i < players.length; i++) {
-                trail = players[i].getTrail();
-                for (it = 0; it < trail.length; it++) {
-                    point = trail[it];
-
-                    if(point.crashed) {
-                        //ctx.save();
-                        ctx.strokeStyle="rgb(0,255,0)";
-                        ctx.lineWidth = settings.LINE_SIZE / 2;
-                        ctx.beginPath();
-                        console.log(point);
-
-                        ctx.moveTo(point.crashed.x, point.crashed.y);
-                        ctx.lineTo(point.x, point.y);
-                        ctx.closePath();
-                        ctx.stroke();
-                        throw "asd";
-                        //ctx.restore();
-                    }
-
-                    lastPoint = point;
-                }
-            }*/
         };
 
         var clear = function () {
@@ -206,6 +155,126 @@
         };
     };
 
+
+
+		exports.SVGRenderer = function(element_id, settings, world) {
+
+			if(typeof Raphael === "undefined") {
+				throw new Error("Cannot find Raphael");
+			}
+
+			var desiredFPS = 25; // The disired frames per second
+			var desiredRedrawInterval = 1000 / desiredFPS; // The desired redraw interval to keep the desired FPS
+			var redrawInterval = desiredRedrawInterval; // The current redraw interval
+			var redrawStartTime = new Date().getTime(); // The time the last redraw started
+			var frameRenderTime = 100; // The time it took to render the last frame
+
+			var width = settings.GAME_WIDTH;
+			var height = settings.GAME_HEIGHT;
+
+			// DOM elements for text output
+			var FPSSpan = document.getElementById('frame_duration');
+			var TPSSpan = document.getElementById('tick_duration');
+			var debugDiv = document.getElementById('debug_message');
+			var logDiv = document.getElementById('log');
+			var running = false;
+			var players = [];
+			//var canvas = document.getElementById(element_id);
+			console.log("drawing on canvas", canvas);
+			var ctx = canvas.getContext("2d");
+			var debugMessage = "";
+
+			var canvas_size = {
+				width: width,
+				height: height
+			};
+
+			var paper = Raphael(document.getElementById("svg"), height, width);
+
+
+			var clear = function () {
+				players = [];
+			};
+			var stop = function () {
+				running = false;
+			};
+
+			var redrawLoop = function () {
+				// Draws to the canvas at a given frames per second, slowing down FPS if rendering is too slow
+				// Will keep on looping forever
+
+				// Record the time when the redraw starts to measure execution time
+				redrawStartTime = new Date().getTime();
+
+				//console.log(world);
+
+				// Draw debug/log/performance data in DOM
+				FPSSpan.innerHTML = 1000 / redrawInterval;
+				TPSSpan.innerHTML = world.getTicksPerSecondText();
+				logDiv.innerHTML = world.getLogData().substr(0,2048);
+				debugDiv.innerHTML = debugMessage;
+
+				// Do the actual redrawing of the screen
+				_redraw();
+				frameRenderTime = new Date().getTime() - redrawStartTime;
+
+				// Lower the rendering speed if the desired rendering time is faster than it's possible to render a frame
+				if (frameRenderTime > desiredRedrawInterval) {
+					redrawInterval = frameRenderTime * 1.5;
+				} else {
+					redrawInterval = desiredRedrawInterval;
+				}
+
+				if(running) {
+					// Re-run the rendering loop
+					setTimeout(redrawLoop, redrawInterval);
+				} else {
+					console.log("stopping rendering engine");
+				}
+			};
+
+			var _redraw = function () {
+				ctx.clearRect(0, 0, canvas_size.width, canvas_size.height);
+
+				paper.clear();
+				players.forEach(function(player) {
+				  var trail = player.getTrail();
+					var lp = trail.map(function(point, index) {
+						if(index === 0) {
+							return "M" + point.x + "," + point.y;
+						} else {
+							return "L" + point.x + "," + point.y;
+						}
+					});
+					paper.path(lp.join(" "));
+				});
+			};
+
+			return {
+				getFrameRenderTime : function() {
+					return frameRenderTime;
+				},
+
+				create: function (player) {
+					players.push(player);
+				},
+				clear : clear,
+
+				start: function() {
+					if (!running) {
+						console.log("starting rendering engine");
+						running = true;
+						redrawLoop();
+					}
+
+				},
+				stop: stop,
+				isStub : function () {
+					return false;
+				}
+			};
+
+		};
 
 
     exports.StubRenderer = function (element_id, settings, world) {
