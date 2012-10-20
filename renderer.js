@@ -12,7 +12,7 @@
  */
 
 (function(exports){
-    exports.CanvasRenderer = function (element_id, settings, world) {
+    exports.CanvasRenderer = function (element_id, settings, world, simulator) {
 
         var desiredFPS = 25; // The disired frames per second
         var desiredRedrawInterval = 1000 / desiredFPS; // The desired redraw interval to keep the desired FPS
@@ -89,9 +89,18 @@
             // Representing how big part of the tick that has elapsed
 
             var tick_duration_ratio = world.getTickDurationRatio();
-            //ctx.strokeStyle="rgb(200,200,255)"
+
             ctx.clearRect(0, 0, canvas_size.width, canvas_size.height);
+
+            ctx.save();
+            simulator.draw(ctx);
+            ctx.restore();
+
             for (var i = 0; i < players.length; i++) {
+                ctx.save();
+                players[i].draw(ctx);
+                ctx.restore();
+                /*
                 var trail = players[i].getTrail();
                 ctx.fillStyle = players[i].color;
                 var lastPoint = false;
@@ -113,7 +122,7 @@
                     ctx.fill();
 
                     lastPoint = point;
-                }
+                }*/
             }
 
         };

@@ -153,6 +153,17 @@
                 exports.addTrailToTickPacket(tick_packet, player_id, trail_point);
             },
 
+            getTickPacket : function () {
+                return tick_packet;
+            },
+
+            getTickPacketPlayerData : function (player_id) {
+                if(tick_packet.players[player_id] == undefined) {
+                    tick_packet.players[player_id] = {};
+                }
+                return tick_packet.players[player_id];
+            },
+
             tickEnded : function (tick_id) {
                 sendPacketToAllClients(tick_packet);
                 tick_packet = exports.createTickPacket(tick_id);
@@ -174,22 +185,35 @@
         var _players = null;
         var _started = false;
         var _callbackRegistered = false;
+        var _simulator;
         var onTickReceived = function (packet) {
             if (!_started) {
                 return;
             }
+
+            console.log("input WSReceivingInputHandler");
+            //_simulator.receiveUpdate(packet);
+
             //console.log("WSReceivingInputHandler got TICK ", packet);
             for (var i = 0; i < _players.length; i++) {
                 var player = _players[i];
                 if (packet.players[player.id]) {
                     //console.log("got TICK ", player.id);
-                    player.addTrailPoint(packet.players[player.id]);
+                    //player.addTrailPoint(packet.players[player.id]);
+
+                    // TODO: Fix this ugliness!
+                    if (player.addTrailPoint) {
+                        player.addTrailPoint(packet.players[player.id]);
+                    } else {
+                        player.receiveUpdate(packet.players[player.id]);
+                    }
                 }
             }
         };
 
         return {
-            start : function (players) {
+            start : function (players, simulator) {
+                _simulator = simulator;
                 _started = true;
                 _players = players;
                 if(!_callbackRegistered) {
@@ -243,6 +267,7 @@
             },
 
             tickEnded : function (tick_id) {
+                //console.log("tick_packet", tick_packet);
                 inputHandler_onTick(tick_packet);
                 tick_packet = exports.createTickPacket(tick_id);
             },
@@ -252,6 +277,17 @@
 
             gameOver : function () {
                 onGameOver();
+            },
+
+            getTickPacket : function () {
+                return tick_packet;
+            },
+
+            getTickPacketPlayerData : function (player_id) {
+                if(tick_packet.players[player_id] == undefined) {
+                    tick_packet.players[player_id] = {};
+                }
+                return tick_packet.players[player_id];
             },
 
             startGame : startGame
@@ -269,10 +305,17 @@
                 return;
             }
 
+            //_simulator.receiveUpdate(packet);
+
             for (var i = 0; i < _players.length; i++) {
                 var player = _players[i];
+                // TODO: Fix this ugliness!
                 if (packet.players[player.id]) {
-                    player.addTrailPoint(packet.players[player.id]);
+                    if (player.addTrailPoint) {
+                        player.addTrailPoint(packet.players[player.id]);
+                    } else {
+                        player.receiveUpdate(packet.players[player.id]);
+                    }
                 }
             }
         };
