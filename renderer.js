@@ -97,7 +97,7 @@
             ctx.clearRect(0, 0, canvas_size.width, canvas_size.height);
 
             ctx.save();
-            simulator.draw();
+            simulator.draw(ctx);
             ctx.restore();
 
             for (var i = 0; i < players.length; i++) {

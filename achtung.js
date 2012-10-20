@@ -305,8 +305,8 @@ var input = require('./input.js');
             TURNING_SPEED : 10,
             MOVEMENT_SPEED : 10,
             LINE_SIZE : 3,
-            GAME_WIDTH : 200,
-            GAME_HEIGHT : 200
+            GAME_WIDTH : 800,
+            GAME_HEIGHT : 800
         };
     };
 
