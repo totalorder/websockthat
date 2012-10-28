@@ -91,6 +91,27 @@ var shared = require('./shared.js');
             }
         };
 
+
+        /* Hacked together mobile phone tilt-support
+         * Needs a code review
+        window.addEventListener('touchstart', function (e) {
+            specialKeyCommandsCallback(exports.COMMANDS.START);
+        });
+
+        window.addEventListener('devicemotion', function (e) {
+            ax = e.accelerationIncludingGravity.x;
+            if (ax > 3.5) {
+                doKeyDown({keyCode: keys.right});
+            } else if (ax < -3.5) {
+                doKeyDown({keyCode: keys.left});
+            } else {
+                doKeyUp({keyCode: _lastCommandKeyCode});
+            }
+            //ay = -e.accelerationIncludingGravity.y;
+            //console.log
+        });
+        */
+
         // Start listening to keyboard events
         window.addEventListener('keydown',doKeyDown,true);
         window.addEventListener('keyup',doKeyUp,true);
