@@ -302,11 +302,11 @@ var input = require('./input.js');
         return {
             // The desired number of ticks per second
             DESIRED_TPS : 20,
-            TURNING_SPEED : 10,
+            TURNING_SPEED : 5,
             MOVEMENT_SPEED : 10,
             LINE_SIZE : 3,
-            GAME_WIDTH : 500,
-            GAME_HEIGHT : 500
+            GAME_WIDTH : 800,
+            GAME_HEIGHT : 800
         };
     };
 
