@@ -1,3 +1,5 @@
+var _ = require('underscore')._;
+
 (function(exports){
     exports.addWebSocketObjectSupport = function (webSocket) {
         webSocket.sendObject = function (obj) {
@@ -10,12 +12,16 @@
 
         var existing_onmessage = webSocket.onmessage;
         var packetCallbacks = {};
+        var _nextPacketCallbackHandlerID = 0;
 
         var _executePacketCallbacks = function (packet) {
             if(packetCallbacks[packet.type]) {
                 for (var i = 0; i < packetCallbacks[packet.type].length; i++) {
                     var packetCallback = packetCallbacks[packet.type][i];
-                    var validator_result = packetCallback.validator(packet);
+                    var validator_result = packet;
+                    if (packetCallback.validator !== null) {
+                        validator_result = packetCallback.validator(packet);
+                    }
                     if (validator_result) {
                         packetCallback.callback(validator_result);
                     }
@@ -46,10 +52,37 @@
 
 
         webSocket.registerReceivedPacketCallback = function (packet_type, validator, callback) {
+            var _handlerID = _nextPacketCallbackHandlerID;
+            _nextPacketCallbackHandlerID++;
             if (!packetCallbacks[packet_type]) {
                 packetCallbacks[packet_type] = [];
             }
-            packetCallbacks[packet_type].push({validator: validator, callback: callback});
+
+            packetCallbacks[packet_type].push({validator: validator, callback: callback, handlerID: _handlerID});
+            return _handlerID;
+        };
+
+        webSocket.unregisterReceivedPacketCallback = function (handlerID) {
+            var _foundIt = false;
+            _.each(packetCallbacks, function (callbacks, packetType) {
+                _.each(callbacks, function (callback, index) {
+                    if(callback.handlerID === handlerID) {
+                        _foundIt = true;
+                        packetCallbacks[packetType].splice(index, 1);
+
+                        // Break out of the loop
+                        return _.breaker;
+                    }
+                });
+                if(_foundIt) {
+                    // Break out of the loop
+                    return _.breaker;
+                }
+            });
+
+            if(!_foundIt) {
+                throw "handler with ID " + handlerID + " not registered!";
+            }
         };
 
 

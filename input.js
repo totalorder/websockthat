@@ -138,10 +138,8 @@ var shared = require('./shared.js');
 
         return {
             /**
-             * Set _player to the current player. Will enable the onInputCallback listener
-             * @param the_player
              */
-            start : function (the_player) {
+            start : function () {
                 if (!_started) {
                     // Hook up the InputDevice.onInputCallback to all incoming packets of type INPUT
                     // from the clients websocket
