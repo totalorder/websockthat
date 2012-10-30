@@ -87,7 +87,7 @@ var _ = require('underscore')._;
             _createLobbyStatePacket = function () {
                 var player_infos = [];
                 _.each(_clients, function (client) {
-                    player_infos.push({id: client.getID(), name : client.getName(), is_ready : client.isReady()});
+                    player_infos.push({id: client.getID(), name : client.getName(), is_ready : client.isReady(), 'color': client.getColor()});
                 });
 
                 return shared.createLobbyStatePacket(_min_clients, _max_clients, _clients.length, _getNumberOfClientsReady(), player_infos);
@@ -166,8 +166,16 @@ var _ = require('underscore')._;
 
             newConnection: function (id, webSocket) {
                 console.log("new connection with id " + id);
+                var local_client_id = _clients.length;
+                _.each(_clients, function (client, index) {
+                    if (client.getLocalID() !==  index) {
+                        local_client_id = index;
+                        return _.breaker;
+                    }
+                    return null;
+                });
 
-                var client = exports.Client(id, webSocket, _local_input_handler),
+                var client = exports.Client(id, local_client_id, webSocket, _local_input_handler),
                     //
                     /**
                      * Listen to HELLOs from the client
@@ -215,8 +223,11 @@ var _ = require('underscore')._;
         };
     };
 
-    exports.Client = function (id, webSocket, inputHandler) {
+    exports.Client = function (id, local_id, webSocket, inputHandler) {
         var _id = id,
+            _local_id = local_id,
+            _color = shared.getColorForID(local_id),
+
             _web_socket = webSocket,
             _hello = false,
             _name = null,
@@ -226,15 +237,23 @@ var _ = require('underscore')._;
 
         return {
             getData : function () {
-                return {id : _id, name: _name, webSocket: _web_socket };
+                return {id : _id, name: _name, webSocket: _web_socket, color: _color };
             },
 
             getID : function () {
                 return _id;
             },
 
+            getLocalID : function () {
+                return _local_id;
+            },
+
             getName : function () {
                 return _name;
+            },
+
+            getColor : function () {
+                return _color;
             },
 
             getWebSocket: function () {

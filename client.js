@@ -104,6 +104,9 @@ var _ = require('underscore')._;
             _.each(packet.player_infos, function (player_info) {
                 var player_info_li = document.createElement("li");
                 player_info_li.innerHTML = (player_info.name || "Anonymous") + ": " + (player_info.ready ? "Ready" : "Not ready");
+                if (player_info.color !== null) {
+                    player_info_li.setAttribute('style', "color: " + player_info.color + ";");
+                }
                 lobby_ul.appendChild(player_info_li);
             });
             //document.createElement("div");

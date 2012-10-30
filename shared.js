@@ -411,14 +411,15 @@ var _ = require('underscore')._;
     };
 
     exports.getColorForID = function (id) {
-        return {
+        var colors = {
             0 : "orange",
             1 : "green",
             2 : "purple",
             3 : "cyan",
             4: "red",
             5: "blue"
-        }[id];
+        };
+        return colors[id % _.keys(colors).length];
     };
 })(typeof exports === 'undefined'? this['shared']={}: exports);
 

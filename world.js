@@ -215,7 +215,6 @@ var config = require("./config.js"),
             var player_infos = [];
             for (i = 0; i < _player_datas.length; i++) {
                 player_data = _player_datas[i];
-                player_data.color = shared.getColorForID(player_data.id);
                 var player_info = {id: player_data.id, name : player_data.name, x: player_data.x, y : player_data.y, color: player_data.color };
                 player_infos.push(player_info);
             }
