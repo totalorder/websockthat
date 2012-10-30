@@ -12,9 +12,16 @@ var _ = require('underscore')._;
     // Create a new WebSocket client
     var web_socket = new window.WebSocket('ws://' + config.CONFIG.connect_to_address + ':' + config.CONFIG.connect_to_port + '/');
 
+    var player_name = window.location.hash;
+    if (player_name) {
+        player_name = player_name.substring(1, player_name.length);
+    } else {
+        player_name = "Anynomous";
+    }
+
     // Set up settings for the local player
     var local_player_settings = {
-        name : 'anton',
+        name :  player_name,
         keys : {
             left : 37,
             right : 40,

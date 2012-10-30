@@ -93,7 +93,7 @@ var config = require("./config.js"),
             var deltaTime = _desiredTickInterval / 1000;
             var result = simulator.simulate(deltaTime);
             _numberOfTicks++;
-            outputHandler.tickEnded(_numberOfTicks);
+            outputHandler.tickEnded(_numberOfTicks, _tps_text);
             if (result) {
                 return result;
             }
@@ -252,7 +252,7 @@ var config = require("./config.js"),
             }
             if (inputHandler) {
                 // The input handler will listen to tick-data to feed the simulation
-                inputHandler.start(_players, simulator);
+                inputHandler.start(_players, simulator, setTPSText);
             }
         };
 
@@ -282,6 +282,10 @@ var config = require("./config.js"),
 
         var gameOver = function () {
             _renderingEngine.stop();
+        };
+
+        var setTPSText = function (tps_text) {
+            _tps_text = tps_text;
         };
 
         return {

@@ -114,11 +114,12 @@ var _ = require('underscore')._;
         return {};
     };
 
-    exports.createTickPacket = function (tick_number) {
+    exports.createTickPacket = function (tick_number, tps_text) {
         var packet = exports.createPacket();
         packet.type = exports.PACKET_TYPES.TICK;
         packet.tick_number = tick_number;
         packet.players = {};
+        packet.tps_text = tps_text;
         return packet;
     };
 
@@ -222,9 +223,9 @@ var _ = require('underscore')._;
                 return tick_packet.players[player_id];
             },
 
-            tickEnded : function (tick_id) {
+            tickEnded : function (tick_id, tps_text) {
                 sendPacketToAllClients(tick_packet);
-                tick_packet = exports.createTickPacket(tick_id);
+                tick_packet = exports.createTickPacket(tick_id, tps_text);
             },
 
             addClient : function (client_data) {
@@ -253,15 +254,20 @@ var _ = require('underscore')._;
         var _started = false;
         var _callbackRegistered = false;
         var _simulator;
+        var _TPSTextCallback = null;
         var onTickReceived = function (packet) {
             if (!_started) {
                 return;
             }
 
-            console.log("input WSReceivingInputHandler");
+            //console.log("input WSReceivingInputHandler");
             //_simulator.receiveUpdate(packet);
 
             //console.log("WSReceivingInputHandler got TICK ", packet);
+
+            if (_TPSTextCallback) {
+                _TPSTextCallback(packet.tps_text);
+            }
             for (var i = 0; i < _players.length; i++) {
                 var player = _players[i];
                 if (packet.players[player.id]) {
@@ -276,13 +282,16 @@ var _ = require('underscore')._;
                     }
                 }
             }
+
+
         };
 
         return {
-            start : function (players, simulator) {
+            start : function (players, simulator, TPSTextCallback) {
                 _simulator = simulator;
                 _started = true;
                 _players = players;
+                _TPSTextCallback = TPSTextCallback;
                 if(!_callbackRegistered) {
                     webSocket.registerReceivedPacketCallback(exports.PACKET_TYPES.TICK, null, onTickReceived);
                 }
