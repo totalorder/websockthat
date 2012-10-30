@@ -2,12 +2,21 @@ var _ = require('underscore')._;
 
 (function(exports){
     exports.addWebSocketObjectSupport = function (webSocket) {
+        var onSendErrorCallback = null;
         webSocket.sendObject = function (obj) {
             var json_string = JSON.stringify(obj);
             if (obj.type != 'TICK') {
                 console.log("sending: ", json_string);
             }
-            webSocket.send(json_string);
+            try {
+                webSocket.send(json_string);
+            } catch (e) {
+                if (onSendErrorCallback) {
+                    onSendErrorCallback(e.toString());
+                } else {
+                    throw e;
+                }
+            }
         };
 
         var existing_onmessage = webSocket.onmessage;
@@ -46,6 +55,10 @@ var _ = require('underscore')._;
                 console.log(message);
                 webSocket.onobject(null);
             }
+        };
+
+        webSocket.setOnSendErrorCallback = function (callback) {
+            onSendErrorCallback = callback;
         };
 
 
@@ -109,13 +122,14 @@ var _ = require('underscore')._;
         return packet;
     };
 
-    exports.createLobbyStatePacket = function (min_players, max_players, connected_players, players_ready) {
+    exports.createLobbyStatePacket = function (min_players, max_players, connected_players, players_ready, player_infos) {
         var packet = exports.createPacket();
         packet.type = exports.PACKET_TYPES.LOBBY_STATE;
         packet.min_players = max_players;
         packet.max_players = max_players;
         packet.connected_players = connected_players;
         packet.players_ready = players_ready;
+        packet.player_infos = player_infos;
         return packet;
     };
 
@@ -217,6 +231,15 @@ var _ = require('underscore')._;
                 client_datas.push(client_data);
             },
 
+            removeClient : function (client_id) {
+                _.each(client_datas, function (client_data, index) {
+                    if(client_data.id === client_id) {
+                        client_datas.splice(index, 1);
+                        return _.breaker;
+                    }
+                });
+            },
+
             gameOver : function () {
                 sendPacketToAllClients(exports.createGameOverPacket());
             },
@@ -261,7 +284,7 @@ var _ = require('underscore')._;
                 _started = true;
                 _players = players;
                 if(!_callbackRegistered) {
-                    webSocket.registerReceivedPacketCallback(exports.PACKET_TYPES.TICK, function (packet) { return packet }, onTickReceived);
+                    webSocket.registerReceivedPacketCallback(exports.PACKET_TYPES.TICK, null, onTickReceived);
                 }
                 _callbackRegistered = true;
 

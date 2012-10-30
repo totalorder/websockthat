@@ -8,7 +8,9 @@ var require = function (module_name) {
     }
 
     if (module_name === "underscore") {
-        module_name = "_";
+        if (_) {
+            return {"_" : _ };
+        }
     }
 
     //console.log("requiring ", module_name);

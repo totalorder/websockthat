@@ -37,12 +37,12 @@ var _ = require('underscore')._;
          */
         web_socket_server.on('connection', function (clientWebSocket) {
 
-            // Enhance the websocket with object support
-            shared.addWebSocketObjectSupport(clientWebSocket);
-
             // Increment the next_client_id, that will be used to ID the next client
             // TODO: Not thread safe?
             next_client_id += 1;
+
+            // Enhance the websocket with object support
+            shared.addWebSocketObjectSupport(clientWebSocket);
 
             _game_on_game.newConnection(next_client_id, clientWebSocket);
             if (_game_on_game.hasStarted() || _game_on_game.hasMaxClients()) {
@@ -85,7 +85,22 @@ var _ = require('underscore')._;
             },
 
             _createLobbyStatePacket = function () {
+                var player_infos = [];
+                _.each(_clients, function (client) {
+                    player_infos.push({id: client.getID(), name : client.getName(), is_ready : client.isReady()});
+                });
 
+                return shared.createLobbyStatePacket(_min_clients, _max_clients, _clients.length, _getNumberOfClientsReady(), player_infos);
+            },
+
+            _sendPacketToAllClients = function (packet) {
+                _.each(_clients, function (client) {
+                    client.getWebSocket().sendObject(packet);
+                });
+            },
+
+            _sendLobbyPackets = function () {
+                _sendPacketToAllClients(_createLobbyStatePacket());
             },
 
             _start = function () {
@@ -95,6 +110,7 @@ var _ = require('underscore')._;
                 var player_datas = [];
 
                 _local_input_handler.start();
+                console.log("starting game with " + _clients.length + "clients");
                 _.each(_clients, function (client) {
                     // Set up the client_data with the InputDevice and InputHandler and
                     client.start();
@@ -150,6 +166,7 @@ var _ = require('underscore')._;
 
             newConnection: function (id, webSocket) {
                 console.log("new connection with id " + id);
+
                 var client = exports.Client(id, webSocket, _local_input_handler),
                     //
                     /**
@@ -159,6 +176,8 @@ var _ = require('underscore')._;
                     helloHandler = webSocket.registerReceivedPacketCallback(shared.PACKET_TYPES.HELLO, null, function (packet) {
                         webSocket.unregisterReceivedPacketCallback(helloHandler);
                         client.gotHello(packet.name);
+
+                        _sendLobbyPackets(); // Tell everyone our name!
 
                         // Tell the outputHandler that we have a new client that should receive updates
                         _output_handler.addClient(client.getData());
@@ -172,8 +191,16 @@ var _ = require('underscore')._;
                             _listenForStart(client);
                         }
                     });
-
                 _clients.push(client);
+                webSocket.setOnSendErrorCallback(function (message) {
+                    console.log("error when sending to client " + client.getID() + ": " + message +"\n" +
+                                "removing player...");
+                    _clients.splice(_clients.indexOf(client), 1);
+                    _output_handler.removeClient(client.getID());
+                    console.log(_clients.length + " clients active");
+                });
+
+                _sendLobbyPackets(); // Tell everyone that someone has joined!
             },
 
             restart: _restart,
@@ -204,6 +231,10 @@ var _ = require('underscore')._;
 
             getID : function () {
                 return _id;
+            },
+
+            getName : function () {
+                return _name;
             },
 
             getWebSocket: function () {
