@@ -56,7 +56,6 @@ var _ = require('underscore')._;
         // Set up an InputDevice that will listen to the keys pressed by the user and react to them
         // Passing along specialKeyCommandsCallback that will send a START packet to the server when
         // the InputDevice detects the START-input-event
-        // TODO: Should not need to supply the input_sender to the InputDevice
         var input_device = new input.LocalInputDevice(local_player_settings.keys, function (command) {
             if (command === input.COMMANDS.START) {
                 web_socket.sendObject(shared.createStartPacket());
@@ -116,7 +115,6 @@ var _ = require('underscore')._;
                 }
                 lobby_ul.appendChild(player_info_li);
             });
-            //document.createElement("div");
         });
 
         // We're all set up. Wait for our player (and all other players) to press start, and let the game begin!

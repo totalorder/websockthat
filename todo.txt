@@ -1,5 +1,9 @@
-refactor all input to go through a Simulator
-Kill off the input.WSInputDevice
+# refactor all input to go through a Simulator
+# Kill off the input.WSInputDevice
 let the Simulator give all commands to the OutputHandler
+fix the local game
 Kill off all TODO-comments
+document everything
+underscore all ugly loops
+refactor shared.js into better modules
 Make pong!
