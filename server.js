@@ -16,88 +16,92 @@ var _ = require('underscore')._;
     exports.Server = function () {
 
         var _createGameOnGame = function () {
-                nextGameID += 1;
-                return new exports.Game(nextGameID, 1, 2);
+                next_game_id += 1;
+                return new exports.Game(next_game_id, 1, 2);
             },
 
             // Create a new WebSocketServer and start listening
             address = {host: config.CONFIG.bind_to_address, port: config.CONFIG.bind_to_port},
-            webSocketServer = new WebSocketServer(address),
-            nextClientID = 0,
-            nextGameID = 0,
-            _gameOnGame = _createGameOnGame(),
-            _runningGames = [];
+            web_socket_server = new WebSocketServer(address),
+            next_client_id = 0,
+            next_game_id = 0,
+            _game_on_game = _createGameOnGame(),
+            _running_games = [];
 
         console.log("listening to ", address);
 
         /**
-         * Listen for new connections on webSocketServer and set up listeners for all new clients
+         * Listen for new connections on web_socket_server and set up listeners for all new clients
          * Also add all new clients to the list "clients" which will be the basis for creating all players
          *
          */
-        webSocketServer.on('connection', function (clientWebSocket) {
+        web_socket_server.on('connection', function (clientWebSocket) {
 
             // Enhance the websocket with object support
             shared.addWebSocketObjectSupport(clientWebSocket);
 
-            // Increment the nextClientID, that will be used to ID the next client
+            // Increment the next_client_id, that will be used to ID the next client
             // TODO: Not thread safe?
-            nextClientID += 1;
+            next_client_id += 1;
 
-            _gameOnGame.newConnection(nextClientID, clientWebSocket);
-            if (_gameOnGame.hasStarted() || _gameOnGame.hasMaxClients()) {
-                _runningGames.push(_gameOnGame);
-                _gameOnGame = _createGameOnGame();
+            _game_on_game.newConnection(next_client_id, clientWebSocket);
+            if (_game_on_game.hasStarted() || _game_on_game.hasMaxClients()) {
+                _running_games.push(_game_on_game);
+                _game_on_game = _createGameOnGame();
             }
         });
     };
 
     exports.Game = function (id, minClients, maxClients) {
-        var _maxClients = maxClients,
-            _minClients = minClients,
+        var _max_clients = maxClients,
+            _min_clients = minClients,
             _id = id,
-            _outputHandler = null,
+            _output_handler = null,
             _options = null,
-            _localInputHandler = null,
+            _local_input_handler = null,
             _world = null,
             _clients = [],
-            _isRunning = false,
-            _hasStarted = false,
+            _is_running = false,
+            _has_started = false,
 
             init = function () {
                 // Set up an output handler, default options and create a World
-                _outputHandler = shared.ServerOutputHandler();
+                _output_handler = shared.ServerOutputHandler();
                 _options = game.createDefaultOptions();
 
                 // Create an InputHandler that will apply all the commands received by
                 // the InputDevice to the player-object
-                _localInputHandler = shared.LocalInputHandler();
+                _local_input_handler = shared.LocalInputHandler();
 
-                _world = world.World(_localInputHandler, _outputHandler, _options);
+                _world = world.World(_local_input_handler, _output_handler, _options);
             },
 
             _hasMaxClients = function () {
-                if (_maxClients === null) {
+                if (_max_clients === null) {
                     throw "cannot check hasMaxClients when no max is set!";
                 }
 
-                return _clients.length === _maxClients;
+                return _clients.length === _max_clients;
+            },
+
+            _createLobbyStatePacket = function () {
+
             },
 
             _start = function () {
-                console.log("starting game " + _id)
-                _isRunning = true;
-                _hasStarted = true;
-                var playerDatas = [];
+                console.log("starting game " + _id);
+                _is_running = true;
+                _has_started = true;
+                var player_datas = [];
 
-                _localInputHandler.start();
+                _local_input_handler.start();
                 _.each(_clients, function (client) {
                     // Set up the client_data with the InputDevice and InputHandler and
                     client.start();
 
                     // Gather all player_data objects and pass them to the world!
                     //var player_infos = [];
-                    playerDatas.push(client.getData());
+                    player_datas.push(client.getData());
                 });
 
                 /**
@@ -105,7 +109,7 @@ var _ = require('underscore')._;
                 * Define a _restartCallback for the world to execute when the game ends that
                 * will set all clients to .start = false and set gameRunning to false.
                 */
-                _world.startGame(playerDatas, function () {
+                _world.startGame(player_datas, function () {
                             _restart();
                         });
             },
@@ -119,17 +123,17 @@ var _ = require('underscore')._;
             },
 
             _listenForStart = function (client) {
-                var startHandler = client.getWebSocket().registerReceivedPacketCallback(shared.PACKET_TYPES.START, null, function (packet) {
-                    client.getWebSocket().unregisterReceivedPacketCallback(startHandler);
+                var start_handler = client.getWebSocket().registerReceivedPacketCallback(shared.PACKET_TYPES.START, null, function (packet) {
+                    client.getWebSocket().unregisterReceivedPacketCallback(start_handler);
                     client.gotStart();
-                    if(_clients.length >= _minClients && _getNumberOfClientsReady() === _clients.length ) {
+                    if(_clients.length >= _min_clients && _getNumberOfClientsReady() === _clients.length ) {
                         _start();
                     }
                 });
             },
 
             _restart = function () {
-            _isRunning = false;
+            _is_running = false;
             _.each(_clients, function (client) {
                 _listenForStart(client);
             });
@@ -146,7 +150,8 @@ var _ = require('underscore')._;
 
             newConnection: function (id, webSocket) {
                 console.log("new connection with id " + id);
-                var client = exports.Client(id, webSocket, _localInputHandler),
+                var client = exports.Client(id, webSocket, _local_input_handler),
+                    //
                     /**
                      * Listen to HELLOs from the client
                      * @param packet
@@ -156,14 +161,14 @@ var _ = require('underscore')._;
                         client.gotHello(packet.name);
 
                         // Tell the outputHandler that we have a new client that should receive updates
-                        _outputHandler.addClient(client.getData());
+                        _output_handler.addClient(client.getData());
 
                         if (_hasMaxClients() && _isAllClientsSetUp()) {
                             _start();
                             return;
                         }
 
-                        if (_minClients !== null) {
+                        if (_min_clients !== null) {
                             _listenForStart(client);
                         }
                     });
@@ -174,27 +179,27 @@ var _ = require('underscore')._;
             restart: _restart,
 
             isRunning : function () {
-                return _isRunning;
+                return _is_running;
             },
 
             hasStarted : function () {
-                return _hasStarted;
+                return _has_started;
             }
         };
     };
 
     exports.Client = function (id, webSocket, inputHandler) {
         var _id = id,
-            _webSocket = webSocket,
+            _web_socket = webSocket,
             _hello = false,
             _name = null,
-            _gotStart = false,
-            _inputDevice = input.WSInputDevice(webSocket, inputHandler.onInputReceived, id),
-            _inputHandler = inputHandler;
+            _got_start = false,
+            _input_device = input.WSInputDevice(webSocket, inputHandler.onInputReceived, id),
+            _input_handler = inputHandler;
 
         return {
             getData : function () {
-                return {id : _id, name: _name, webSocket: _webSocket };
+                return {id : _id, name: _name, webSocket: _web_socket };
             },
 
             getID : function () {
@@ -202,7 +207,7 @@ var _ = require('underscore')._;
             },
 
             getWebSocket: function () {
-                return _webSocket;
+                return _web_socket;
             },
 
             gotHello: function (name) {
@@ -211,7 +216,7 @@ var _ = require('underscore')._;
             },
 
             gotStart: function () {
-                _gotStart = true;
+                _got_start = true;
             },
 
             isSetUp: function () {
@@ -219,16 +224,16 @@ var _ = require('underscore')._;
             },
 
             isReady: function () {
-                return _gotStart;
+                return _got_start;
             },
 
             start : function () {
-                _inputDevice.start();
-                _gotStart = false;
+                _input_device.start();
+                _got_start = false;
             },
 
             stop : function () {
-                //_inputDevice.stop();
+                //_input_device.stop();
             }
         };
     };

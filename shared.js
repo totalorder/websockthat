@@ -93,7 +93,8 @@ var _ = require('underscore')._;
         START : 'START',
         HELLO : 'HELLO',
         START_DATA : 'START_DATA',
-        GAME_OVER : 'GAME_OVER'
+        GAME_OVER : 'GAME_OVER',
+        LOBBY_STATE : 'LOBBY_STATE'
     };
 
     exports.createPacket = function () {
@@ -105,6 +106,16 @@ var _ = require('underscore')._;
         packet.type = exports.PACKET_TYPES.TICK;
         packet.tick_number = tick_number;
         packet.players = {};
+        return packet;
+    };
+
+    exports.createLobbyStatePacket = function (min_players, max_players, connected_players, players_ready) {
+        var packet = exports.createPacket();
+        packet.type = exports.PACKET_TYPES.LOBBY_STATE;
+        packet.min_players = max_players;
+        packet.max_players = max_players;
+        packet.connected_players = connected_players;
+        packet.players_ready = players_ready;
         return packet;
     };
 
