@@ -1,15 +1,16 @@
+var _ = require('underscore')._;
+
 var renderer = require('./renderer.js');
-var player = require('./player.js');
 var shared = require('./shared.js');
 var input = require('./input.js');
 var config = require("./config.js"),
     game = require("./" + config.CONFIG.game_package + ".js");
 
 (function(exports){
-    exports.World = function (inputHandler, outputHandler, options, render) {
+    exports.World = function (tick_sender, input_sender, tick_receiver, options, render) {
         console.log("creating the world!");
 
-        var simulator = game.getSimulatorClass()(outputHandler, options);
+        var simulator = game.getSimulatorClass()(tick_sender, options);
 
         // Define te game specific settings
         var TURNING_SPEED = options.TURNING_SPEED;
@@ -93,7 +94,7 @@ var config = require("./config.js"),
             var deltaTime = _desiredTickInterval / 1000;
             var result = simulator.simulate(deltaTime);
             _numberOfTicks++;
-            outputHandler.tickEnded(_numberOfTicks, _tps_text);
+            tick_sender.tickEnded(_numberOfTicks, _tps_text);
             if (result) {
                 return result;
             }
@@ -166,11 +167,11 @@ var config = require("./config.js"),
                     _gameStarted = false;
 
                     // Notify everybody interested that its GAME OVER!
-                    if (outputHandler) {
-                        outputHandler.gameOver();
+                    if (tick_sender) {
+                        tick_sender.gameOver();
                     }
-                    if (inputHandler) {
-                        inputHandler.gameOver();
+                    if (tick_receiver) {
+                        tick_receiver.gameOver();
                     }
 
                     if(_restartCallback) {
@@ -182,7 +183,7 @@ var config = require("./config.js"),
 
         /**
          * Create a clean World and set up player objects, rendering engine and start ticking if
-         * an outputHandler is specified.
+         * an tick_sender is specified.
          *
          * @param _player_datas - A list of player_data objects representing each player in the game
          * @param _restartCallback - The callback to notify when the game ends
@@ -201,16 +202,16 @@ var config = require("./config.js"),
             // Clear the world, cleaning up any data from previous runs. Will call clear on the rendering engine as well
             clear();
 
-            // Generate position data for each player if we're running with an outputHandler. If not, position data
+            // Generate position data for each player if we're running with an tick_sender. If not, position data
             // should already be present
-            if (outputHandler) {
+            if (tick_sender) {
                 for (i = 0; i < _player_datas.length; i++) {
                     player_data = _player_datas[i];
                     simulator.setUpPlayerData(player_data);
                 }
             }
 
-            // Set up player_info for each player, that will be passed to the outputHandler
+            // Set up player_info for each player, that will be passed to the tick_sender
             // to be sent off to the clients
             var player_infos = [];
             for (i = 0; i < _player_datas.length; i++) {
@@ -219,10 +220,10 @@ var config = require("./config.js"),
                 player_infos.push(player_info);
             }
 
-            // Trigger a startGame-event on the outputHandler if it's present and set up a rendering engine
-            if (outputHandler) {
+            // Trigger a startGame-event on the tick_sender if it's present and set up a rendering engine
+            if (tick_sender) {
                 console.log("got START from all players, sending players");
-                outputHandler.startGame(options, player_infos);
+                tick_sender.startGame(options, player_infos);
             }
 
             if(!_renderingEngine) {
@@ -235,25 +236,43 @@ var config = require("./config.js"),
             }
 
             // Create all players, start them, and add them to the rendering engine
-            for (i = 0; i < _player_datas.length; i++) {
-                var new_player = _createPlayer(_player_datas[i]);
+            _.each(_player_datas, function (player_data) {
+
+                if (player_data.input_device) {
+                    if (input_sender) {
+                        player_data.input_device.setOnCommandCallback(input_sender.onInputReceived);
+                    } else {
+                        player_data.input_device.setOnCommandCallback(simulator.onInputReceived);
+                    }
+                }
+
+                if (player_data.input_receiver) {
+                    player_data.input_receiver.setOnCommandCallback(simulator.onInputReceived);
+                }
+
+                var new_player = _createPlayer(player_data);
                 new_player.start();
                 _renderingEngine.create(new_player);
-            }
+            });
 
             simulator.start(_players);
 
             // Start everything!
             _renderingEngine.start();
             _gameStarted = true;
-            if (outputHandler) {
+            if (tick_sender) {
                 // Start ticking will keep ticking with the simulation until everybody is dead
                 startTicking(_restartCallback);
             }
-            if (inputHandler) {
-                // The input handler will listen to tick-data to feed the simulation
-                inputHandler.start(_players, simulator, setTPSText);
+
+            if (tick_receiver) {
+                tick_receiver.start(simulator, setTPSText);
             }
+
+            /*if (input_receiver) {
+                // The input handler will listen to tick-data to feed the simulation
+                input_receiver.start(_players, simulator, setTPSText);
+            } */
         };
 
 

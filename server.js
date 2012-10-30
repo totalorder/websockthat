@@ -2,7 +2,6 @@ var WebSocketServer = require('ws').Server,
     shared = require('./shared.js'),
     world = require('./world.js'),
     input = require('./input.js'),
-    player = require('./player.js'),
     config = require("./config.js"),
     game = require("./" + config.CONFIG.game_package + ".js");
 
@@ -21,7 +20,8 @@ var _ = require('underscore')._;
             },
 
             // Create a new WebSocketServer and start listening
-            address = {host: config.CONFIG.bind_to_address, port: config.CONFIG.bind_to_port},
+            address = { host: config.CONFIG.bind_to_address,
+                        port: config.CONFIG.bind_to_port },
             web_socket_server = new WebSocketServer(address),
             next_client_id = 0,
             next_game_id = 0,
@@ -56,9 +56,8 @@ var _ = require('underscore')._;
         var _max_clients = maxClients,
             _min_clients = minClients,
             _id = id,
-            _output_handler = null,
+            _tick_sender = null,
             _options = null,
-            _local_input_handler = null,
             _world = null,
             _clients = [],
             _is_running = false,
@@ -66,14 +65,10 @@ var _ = require('underscore')._;
 
             init = function () {
                 // Set up an output handler, default options and create a World
-                _output_handler = shared.ServerOutputHandler();
+                _tick_sender = shared.WebSocketTickSender();
                 _options = game.createDefaultOptions();
 
-                // Create an InputHandler that will apply all the commands received by
-                // the InputDevice to the player-object
-                _local_input_handler = shared.LocalInputHandler();
-
-                _world = world.World(_local_input_handler, _output_handler, _options);
+                _world = world.World(_tick_sender, null, null, _options);
             },
 
             _hasMaxClients = function () {
@@ -109,7 +104,6 @@ var _ = require('underscore')._;
                 _has_started = true;
                 var player_datas = [];
 
-                _local_input_handler.start();
                 console.log("starting game with " + _clients.length + "clients");
                 _.each(_clients, function (client) {
                     // Set up the client_data with the InputDevice and InputHandler and
@@ -175,12 +169,8 @@ var _ = require('underscore')._;
                     return null;
                 });
 
-                var client = exports.Client(id, local_client_id, webSocket, _local_input_handler),
-                    //
-                    /**
-                     * Listen to HELLOs from the client
-                     * @param packet
-                     */
+                var client = exports.Client(id, local_client_id, webSocket),
+                     // Listen to HELLOs from the client
                     helloHandler = webSocket.registerReceivedPacketCallback(shared.PACKET_TYPES.HELLO, null, function (packet) {
                         webSocket.unregisterReceivedPacketCallback(helloHandler);
                         client.gotHello(packet.name);
@@ -188,7 +178,7 @@ var _ = require('underscore')._;
                         _sendLobbyPackets(); // Tell everyone our name!
 
                         // Tell the outputHandler that we have a new client that should receive updates
-                        _output_handler.addClient(client.getData());
+                        _tick_sender.addClient(client.getData());
 
                         if (_hasMaxClients() && _isAllClientsSetUp()) {
                             _start();
@@ -204,7 +194,7 @@ var _ = require('underscore')._;
                     console.log("error when sending to client " + client.getID() + ": " + message +"\n" +
                                 "removing player...");
                     _clients.splice(_clients.indexOf(client), 1);
-                    _output_handler.removeClient(client.getID());
+                    _tick_sender.removeClient(client.getID());
                     console.log(_clients.length + " clients active");
                 });
 
@@ -223,7 +213,7 @@ var _ = require('underscore')._;
         };
     };
 
-    exports.Client = function (id, local_id, webSocket, inputHandler) {
+    exports.Client = function (id, local_id, webSocket) {
         var _id = id,
             _local_id = local_id,
             _color = shared.getColorForID(local_id),
@@ -232,12 +222,11 @@ var _ = require('underscore')._;
             _hello = false,
             _name = null,
             _got_start = false,
-            _input_device = input.WSInputDevice(webSocket, inputHandler.onInputReceived, id),
-            _input_handler = inputHandler;
+            _input_receiver = input.WebSocketInputReceiver(webSocket, id);
 
         return {
             getData : function () {
-                return {id : _id, name: _name, webSocket: _web_socket, color: _color };
+                return {id : _id, name: _name, webSocket: _web_socket, input_receiver: _input_receiver, color: _color };
             },
 
             getID : function () {
@@ -278,12 +267,12 @@ var _ = require('underscore')._;
             },
 
             start : function () {
-                _input_device.start();
+                _input_receiver.start();
                 _got_start = false;
             },
 
             stop : function () {
-                //_input_device.stop();
+
             }
         };
     };

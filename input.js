@@ -19,10 +19,10 @@ var shared = require('./shared.js');
      * @param specialKeyCommandsCallback - The callback that should handle special keys,
      *                                     that are not player controlling keys. For example 'start'
      */
-    exports.LocalInputDevice = function (keys, onCommandCallback, specialKeyCommandsCallback) {
+    exports.LocalInputDevice = function (keys, specialKeyCommandsCallback) {
         var _lastCommandKeyCode = null;
         var _player_id = null;
-        var _onCommandCallback = onCommandCallback;
+        var _onCommandCallback = null; // onCommandCallback;
 
         /**
          * Get the COMMAND that represents keyCode among the commands that control the player
@@ -117,8 +117,12 @@ var shared = require('./shared.js');
         window.addEventListener('keyup',doKeyUp,true);
 
         return {
-            start : function (player_id) {
+            start : function (player_id, onCommandCallback) {
                 _player_id = player_id;
+            },
+
+            setOnCommandCallback : function (callback) {
+                _onCommandCallback = callback;
             }
         };
     };
@@ -127,12 +131,13 @@ var shared = require('./shared.js');
      * An input device that exposes a listener callback onInputCallback
      * which will trigger player.setCommand()
      */
-    exports.WSInputDevice = function (webSocket, onCommandCallback, player_id) {
+    exports.WebSocketInputReceiver = function (webSocket, player_id) {
         var _started = false;
+        var _onCommandCallback = null; // onCommandCallback;
 
         var onInputCallback = function (input_command) {
             if (_started) {
-                onCommandCallback(player_id, input_command);
+                _onCommandCallback(player_id, input_command);
             }
         };
 
@@ -149,7 +154,11 @@ var shared = require('./shared.js');
                 _started = true;
             },
 
-            onInputCallback : onInputCallback
+            onInputCallback : onInputCallback,
+
+            setOnCommandCallback : function (callback) {
+                _onCommandCallback = callback;
+            }
         };
     };
 })(typeof exports === 'undefined'? this['input']={}: exports);

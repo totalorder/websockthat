@@ -1,44 +1,29 @@
 var renderer = require('./renderer.js');
-var player = require('./player.js');
 var shared = require('./shared.js');
 var input = require('./input.js');
 
 (function(exports){
-    exports.AchtungSimulator = function (outputHandler, options) {
+    exports.AchtungSimulator = function (tick_sender, options) {
         // Define te game specific settings
         var TURNING_SPEED = options.TURNING_SPEED;
         var MOVEMENT_SPEED = options.MOVEMENT_SPEED;
         var LINE_SIZE = options.LINE_SIZE;
 
         // Set up internal data structures
-        var _lastAlive;
+        var _last_alive;
         var _players = null;
-        var _playersMap = {};
-
-        var inputQueue = [];
+        var _players_map = {};
 
         var populatePlayersMap = function () {
-            _playersMap = {};
+            _players_map = {};
             for (var i = 0; i < _players.length; i++) {
-                _playersMap[_players[i].id] = _players[i];
+                _players_map[_players[i].id] = _players[i];
             }
         };
 
-         // Do this in setup/teardown
-
-        var addInput = function (player_id, input_command) {
-            //inputQueue.push({player_id : player_id, input_command : input_command});
-            _playersMap[player_id].setInternalInputCommand(input_command);
+        var onInputReceived = function (player_id, input_command) {
+            _players_map[player_id].setInternalInputCommand(input_command);
         };
-
-        /*var applyInput = function () {
-            for (var i; i < inputQueue.length; i++) {
-                var inputCommand = inputQueue[i];
-                if (_playersMap[inputCommand.player_id]) {
-                    _playersMap[inputCommand.player_id].setInternalInputCommand(inputCommand.input_command);
-                }
-            }
-        };*/
 
         /**
          * Run one tick of the simulation
@@ -47,7 +32,7 @@ var input = require('./input.js');
          */
         var simulate = function (deltaTime) {
             // Set up internal data structures
-            var playerInputStates = [];
+            var player_input_states = [];
             var player;
             var i;
             // This should be dependent on _tickInterval if the game doesn't depend on all ticks
@@ -57,13 +42,13 @@ var input = require('./input.js');
             // input is sampled at the same time since it can change during the simulation-step
             for (i = 0; i < _players.length; i++) {
                 player = _players[i];
-                playerInputStates.push(player.getInputState());
+                player_input_states.push(player.getInputState());
             }
 
-            // Run the simulation step for all players, passing along the outputHandler to send off any data generated
+            // Run the simulation step for all players, passing along the tick_sender to send off any data generated
             for (i = 0; i < _players.length; i++) {
                 player = _players[i];
-                player.simulate(deltaTime, playerInputStates[i], outputHandler);
+                player.simulate(deltaTime, player_input_states[i], tick_sender);
             }
 
             // Check for collissions for all players and how close to the impact spot they are
@@ -72,7 +57,7 @@ var input = require('./input.js');
             for (i = 0; i < _players.length; i++) {
                 player = _players[i];
                 var collission_distance = player.getCollision(deltaTime, _players);
-                if (collission_distance != null) {
+                if (collission_distance !== null) {
                     collisions.push({'player': player, 'collision_distance': collission_distance, 'player_number' : i});
                 }
             }
@@ -84,6 +69,7 @@ var input = require('./input.js');
 
             // Kill off players in the order of closest to impact spot
             // End the simulation if there is only one player alive, making hen the winner
+            // TODO: Underscore this shit
             for (i = 0; i < collisions.length; i++) {
                 player = collisions[i].player;
                 player.kill();
@@ -93,7 +79,7 @@ var input = require('./input.js');
                 for (var it = 0; it < _players.length; it++) {
                     if (_players[it].isAlive()) {
                         players_alive ++;
-                        _lastAlive = player;
+                        _last_alive = player;
                     }
                 }
 
@@ -142,18 +128,18 @@ var input = require('./input.js');
 
             var _x = x;
             var _y = y;
-            var _lastCommand = input.COMMANDS.LEFT_RIGHT_UP;
+            var _last_command = input.COMMANDS.LEFT_RIGHT_UP;
             var _direction = direction;
             var _trail = [{x: _x, y: _y}];
             var alive = true;
             var getInputState = function () {
-                return _lastCommand;
+                return _last_command;
             };
 
-            var simulate = function (deltaTime, inputState, outputHandler) {
-                if (inputState == input.COMMANDS.LEFT_DOWN) {
+            var simulate = function (deltaTime, inputState, tick_sender) {
+                if (inputState === input.COMMANDS.LEFT_DOWN) {
                     _direction += settings.TURNING_SPEED * deltaTime;
-                } else if (inputState == input.COMMANDS.RIGHT_DOWN) {
+                } else if (inputState === input.COMMANDS.RIGHT_DOWN) {
                     _direction -= settings.TURNING_SPEED * deltaTime;
                 }
                 //console.log(deltaTime);
@@ -162,7 +148,7 @@ var input = require('./input.js');
 
                 var trail_point = {x: _x, y: _y};
                 _trail.push(trail_point);
-                outputHandler.addTrailPoint(id, trail_point);
+                tick_sender.setPlayerData(id, trail_point);
             };
 
             var receiveExternalUpdate = function (data) {
@@ -170,31 +156,28 @@ var input = require('./input.js');
             };
 
             var draw = function (ctx) {
-                var trail = _trail;
                 ctx.fillStyle = color;
-                var lastPoint = false;
-                for (var it = 0; it < trail.length; it++) {
-                    var point = trail[it];
-                    if(false && lastPoint) {
+                var last_point = false;
+                for (var it = 0; it < _trail.length; it++) {
+                    var point = _trail[it];
+                    if(false && last_point) {
                         ctx.beginPath();
-                        ctx.moveTo(lastPoint.x, lastPoint.y);
+                        ctx.moveTo(last_point.x, last_point.y);
                         ctx.lineTo(point.x, point.y);
                         ctx.closePath();
                         ctx.stroke();
                     }
-                    //ctx.fillRect(Math.floor(point.x),100,10,10);
-                    //console.log(point);
 
                     ctx.beginPath();
                     ctx.arc(point.x, point.y, settings.LINE_SIZE, 0, Math.PI * 2, true);
                     ctx.closePath();
                     ctx.fill();
 
-                    lastPoint = point;
+                    last_point = point;
                 }
             };
 
-            var getCollision = function (deltaTime, players) {
+            var getCollision = function (delta_time, players) {
                 var player;
                 var collisions = [];
 
@@ -212,15 +195,14 @@ var input = require('./input.js');
                     return _y - (settings.GAME_HEIGHT - settings.LINE_SIZE / 2);
                 }
 
-                //console.log(settings.MOVEMENT_SPEED, settings.LINE_SIZE);
-                var _trailTouchDistance = ((settings.LINE_SIZE*2) / (settings.MOVEMENT_SPEED * deltaTime)) + 1;
+                var _trail_touch_distance = ((settings.LINE_SIZE*2) / (settings.MOVEMENT_SPEED * delta_time)) + 1;
 
                 for (var i = 0; i < players.length; i++) {
                     player = players[i];
 
                     var trail = player.getTrail();
-                    var stopAt = player != this ? trail.length : Math.max(-1, trail.length - _trailTouchDistance);
-                    for (var ti = 0; ti < stopAt; ti++) {
+                    var stop_at = player !== this ? trail.length : Math.max(-1, trail.length - _trail_touch_distance);
+                    for (var ti = 0; ti < stop_at; ti++) {
                         var point = trail[ti];
                         var distance = Math.sqrt(Math.pow(_x - point.x,2) + Math.pow(_y - point.y,2));
                         if (distance <= settings.LINE_SIZE) {
@@ -233,7 +215,7 @@ var input = require('./input.js');
                     return left.collision_distance - right.collision_distance;
                 });
 
-                if (collisions) {
+                if (collisions.length > 0) {
                     return collisions[0];
                 } else {
                     return null;
@@ -264,7 +246,7 @@ var input = require('./input.js');
             };
 
             var _setCommand = function (command) {
-                _lastCommand = command;
+                _last_command = command;
             };
 
             var start = function () {
@@ -292,7 +274,7 @@ var input = require('./input.js');
                 kill: kill,
                 getName: getName,
                 start : start,
-                addTrailPoint : addTrailPoint,
+                setPlayerData : addTrailPoint,
                 id : id,
                 color : color,
                 isAlive : isAlive,
@@ -304,11 +286,11 @@ var input = require('./input.js');
         return {
             simulate : simulate,
             receiveExternalUpdate : receiveExternalUpdate,
-            addInput : addInput,
             start : start,
             setUpPlayerData : setUpPlayerData,
             createPlayer : createPlayer,
-            draw : draw
+            draw : draw,
+            onInputReceived : onInputReceived
         };
     };
 

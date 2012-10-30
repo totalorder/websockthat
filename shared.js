@@ -140,11 +140,8 @@ var _ = require('underscore')._;
         return packet;
     };
 
-    exports.addTrailToTickPacket = function (tick_packet, player_id, trail_point) {
-        if(tick_packet.players[player_id] == undefined) {
-            tick_packet.players[player_id] = [];
-        }
-        tick_packet.players[player_id] = trail_point;
+    exports.setTickPacketPlayerData = function (tick_packet, player_id, data) {
+        tick_packet.players[player_id] = data;
     };
 
     exports.createInputPacket = function (command) {
@@ -175,7 +172,7 @@ var _ = require('underscore')._;
         return packet;
     };
 
-    exports.ServerOutputHandler = function () {
+    exports.WebSocketTickSender = function () {
         var tick_packet = exports.createTickPacket(0);;
         var client_datas = [];
         var sendPacketToAllClients = function (packet, preprocessor) {
@@ -208,8 +205,8 @@ var _ = require('underscore')._;
         };
 
         return {
-            addTrailPoint : function (player_id, trail_point) {
-                exports.addTrailToTickPacket(tick_packet, player_id, trail_point);
+            setPlayerData : function (player_id, trail_point) {
+                exports.setTickPacketPlayerData(tick_packet, player_id, trail_point);
             },
 
             getTickPacket : function () {
@@ -249,8 +246,7 @@ var _ = require('underscore')._;
         };
     };
 
-    exports.WSReceivingInputHandler = function (webSocket) {
-        var _players = null;
+    exports.WebSocketTickReceiver = function (webSocket) {
         var _started = false;
         var _callbackRegistered = false;
         var _simulator;
@@ -267,10 +263,9 @@ var _ = require('underscore')._;
         };
 
         return {
-            start : function (players, simulator, TPSTextCallback) {
+            start : function (simulator, TPSTextCallback) {
                 _simulator = simulator;
                 _started = true;
-                _players = players;
                 _TPSTextCallback = TPSTextCallback;
                 if(!_callbackRegistered) {
                     webSocket.registerReceivedPacketCallback(exports.PACKET_TYPES.TICK, null, onTickReceived);
@@ -289,7 +284,7 @@ var _ = require('underscore')._;
      * An input handler that sends all incoming commands over a websocket to a remote server
      * @param webSocket
      */
-    exports.WSSendingInputHandler = function (webSocket) {
+    exports.WebSocketInputSender = function (webSocket) {
         var _started = false;
         var player = null;
 
@@ -318,8 +313,8 @@ var _ = require('underscore')._;
         };
 
         return {
-            addTrailPoint : function (player_id, trail_point) {
-                exports.addTrailToTickPacket(tick_packet, player_id, trail_point);
+            setPlayerData : function (player_id, trail_point) {
+                exports.setTickPacketPlayerData(tick_packet, player_id, trail_point);
             },
 
             tickEnded : function (tick_id) {
@@ -367,8 +362,8 @@ var _ = require('underscore')._;
                 var player = _players[i];
                 // TODO: Fix this ugliness!
                 if (packet.players[player.id]) {
-                    if (player.addTrailPoint) {
-                        player.addTrailPoint(packet.players[player.id]);
+                    if (player.setPlayerData) {
+                        player.setPlayerData(packet.players[player.id]);
                     } else {
                         player.receiveUpdate(packet.players[player.id]);
                     }

@@ -1,5 +1,4 @@
 var renderer = require('./renderer.js');
-var player = require('./player.js');
 var shared = require('./shared.js');
 var input = require('./input.js');
 

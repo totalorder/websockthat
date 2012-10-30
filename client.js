@@ -36,7 +36,7 @@ var _ = require('underscore')._;
     console.log("waiting for connection open");
 
     /*
-     * Wait until our connection is open and then create a World, WSReceivingInputHandler and LocalInputDevice.
+     * Wait until our connection is open and then create a World, WebSocketTickReceiver and LocalInputDevice.
      * Hook up the LocalInputDevice to listen for among other keys the "START" key.
      *
      * Then we start listening to packets of the type START_DATA which will arrive when all players have
@@ -48,16 +48,16 @@ var _ = require('underscore')._;
 
         // Set up an InputHandler that will listen for and react to all incoming data that is about the in-game
         // action
-        var client_input_handler = shared.WSReceivingInputHandler(web_socket);
+        var tick_receiver = shared.WebSocketTickReceiver(web_socket);
         var client_world = null;
 
-        var input_handler = new shared.WSSendingInputHandler(web_socket);
+        var input_sender = new shared.WebSocketInputSender(web_socket);
 
         // Set up an InputDevice that will listen to the keys pressed by the user and react to them
         // Passing along specialKeyCommandsCallback that will send a START packet to the server when
         // the InputDevice detects the START-input-event
-        // TODO: Should not need to supply the input_handler to the InputDevice
-        var input_device = new input.LocalInputDevice(local_player_settings.keys, input_handler.onInputReceived, function (command) {
+        // TODO: Should not need to supply the input_sender to the InputDevice
+        var input_device = new input.LocalInputDevice(local_player_settings.keys, function (command) {
             if (command === input.COMMANDS.START) {
                 web_socket.sendObject(shared.createStartPacket());
                 console.log("waiting for players packet!");
@@ -66,24 +66,24 @@ var _ = require('underscore')._;
 
         /*
          * Register for incoming packets of the type START_DATA and set up the game world, and start it.
-         * Sets our LocalInputDevice as the input for the local player and passes along a WSSendingInputHandler
+         * Sets our LocalInputDevice as the input for the local player and passes along a WebSocketInputSender
          * that will relay all input-commands to the server
          */
         web_socket.registerReceivedPacketCallback(shared.PACKET_TYPES.START_DATA, null, function (packet) {
 
             // Create a new World passing along the game-options received from the server
-            // Passing in our WSReceivingInputHandler will let the World notify it when the game starts and what
+            // Passing in our WebSocketTickReceiver will let the World notify it when the game starts and what
             // players will be in the game. The InputHandler will then be able to input data directly into
             // the players
-            client_world = new world.World(client_input_handler, null, packet.options, true);
+            client_world = new world.World(null, input_sender, tick_receiver, packet.options, true);
 
-            // Set the input_device for the local player to our LocalInputDevice and set it's input_handler
-            // to a WSSendingInputHandler that will relay all input-commands to the server
+            // Set the input_device for the local player to our LocalInputDevice and set it's input_sender
+            // to a WebSocketInputSender that will relay all input-commands to the server
             for (var i = 0; i < packet.players.length; i++) {
                 var player_data = packet.players[i];
                 if(player_data.you) {
                     player_data.input_device = input_device;
-                    player_data.input_handler = input_handler;
+                    player_data.input_handler = input_sender;
                 }
             }
 
