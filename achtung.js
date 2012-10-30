@@ -130,6 +130,14 @@ var input = require('./input.js');
 
         var draw = function (ctx) {};
 
+        var receiveExternalUpdate = function (tick_packet) {
+            _.each(_players, function (player) {
+                if (tick_packet.players[player.id]) {
+                    player.receiveExternalUpdate(tick_packet.players[player.id]);
+                }
+            });
+        };
+
         var Player = function (id, name, input_device, input_handler, settings, x, y, direction, color) {
 
             var _x = x;
@@ -155,6 +163,10 @@ var input = require('./input.js');
                 var trail_point = {x: _x, y: _y};
                 _trail.push(trail_point);
                 outputHandler.addTrailPoint(id, trail_point);
+            };
+
+            var receiveExternalUpdate = function (data) {
+                addTrailPoint(data);
             };
 
             var draw = function (ctx) {
@@ -284,12 +296,14 @@ var input = require('./input.js');
                 id : id,
                 color : color,
                 isAlive : isAlive,
-                setInternalInputCommand : _setCommand // TODO: Not private anymore. Clean up
+                setInternalInputCommand : _setCommand, // TODO: Not private anymore. Clean up,
+                receiveExternalUpdate : receiveExternalUpdate
             };
         };
 
         return {
             simulate : simulate,
+            receiveExternalUpdate : receiveExternalUpdate,
             addInput : addInput,
             start : start,
             setUpPlayerData : setUpPlayerData,

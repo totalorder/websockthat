@@ -260,30 +260,10 @@ var _ = require('underscore')._;
                 return;
             }
 
-            //console.log("input WSReceivingInputHandler");
-            //_simulator.receiveUpdate(packet);
-
-            //console.log("WSReceivingInputHandler got TICK ", packet);
-
             if (_TPSTextCallback) {
                 _TPSTextCallback(packet.tps_text);
             }
-            for (var i = 0; i < _players.length; i++) {
-                var player = _players[i];
-                if (packet.players[player.id]) {
-                    //console.log("got TICK ", player.id);
-                    //player.addTrailPoint(packet.players[player.id]);
-
-                    // TODO: Fix this ugliness!
-                    if (player.addTrailPoint) {
-                        player.addTrailPoint(packet.players[player.id]);
-                    } else {
-                        player.receiveUpdate(packet.players[player.id]);
-                    }
-                }
-            }
-
-
+            _simulator.receiveExternalUpdate(packet);
         };
 
         return {

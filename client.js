@@ -92,13 +92,13 @@ var _ = require('underscore')._;
             console.log("started!");
         });
 
-        // Register for incoming pakcets of the type GAME_OVER and notify the World if the server says it's game over
+        // Register for incoming packets of the type GAME_OVER and notify the World if the server says it's game over
         web_socket.registerReceivedPacketCallback(shared.PACKET_TYPES.GAME_OVER, null, function (packet) {
             console.log("GAME OVER!");
             client_world.gameOver();
         });
 
-        // Register for incoming pakcets of the type LOBBy_STATE
+        // Register for incoming pakcets of the type LOBBY_STATE
         web_socket.registerReceivedPacketCallback(shared.PACKET_TYPES.LOBBY_STATE, null, function (packet) {
             while (lobby_ul.hasChildNodes()) {
                 lobby_ul.removeChild(lobby_ul.lastChild);
