@@ -20,77 +20,84 @@ var shared = require('./shared.js');
      *                                     that are not player controlling keys. For example 'start'
      */
     exports.LocalInputDevice = function (keys, specialKeyCommandsCallback) {
-        var _lastCommandKeyCode = null;
-        var _player_id = null;
-        var _onCommandCallback = null; // onCommandCallback;
+        var _last_command_key_code = null,
+            _player_id = null,
+            _onCommandCallback = null,
 
-        /**
-         * Get the COMMAND that represents keyCode among the commands that control the player
-         * @param keyCode - The integer number representing a keyboard key
-         * @return One of exports.COMMANDS
-         */
-        var getPlayerKeyCommand = function (keyCode) {
-            switch (keyCode) {
-                case keys.left:
-                    return exports.COMMANDS.LEFT_DOWN;
-                    break;
-                case keys.right:
-                    return exports.COMMANDS.RIGHT_DOWN;
-                    break;
-            }
-            return null;
-        };
+            _init = function () {
+                // Start listening to keyboard events
+                window.addEventListener('keydown',doKeyDown,true);
+                window.addEventListener('keyup',doKeyUp,true);
+            },
 
-        /**
-         * Get the COMMAND that represents keyCode among the commands that doesn't control the player
-         * @param keyCode - The integer number representing a keyboard key
-         * @return One of exports.COMMANDS
-         */
-        var getSpecialKeyCommand = function (keyCode) {
-            switch (keyCode) {
-                case keys.start:
-                    return exports.COMMANDS.START;
-                    break;
-            }
-            return null;
-        };
-
-        /**
-         * Tiggered when a key is pressed down. Will result in either _player.setCommand() or specialKeyCommandsCallback
-         * being called with a COMMAND as argument
-         * @param evt - keyboard event
-         */
-        var doKeyDown = function (evt){
-            var issuedCommand = null;
-            if (_player_id != null) {
-                issuedCommand = getPlayerKeyCommand(evt.keyCode);
-            }
-            if (issuedCommand) {
-                _lastCommandKeyCode = evt.keyCode;
-                _onCommandCallback(_player_id, issuedCommand);
-            } else {
-
-                issuedCommand = getSpecialKeyCommand(evt.keyCode);
-                if (issuedCommand) {
-                    specialKeyCommandsCallback(issuedCommand);
+            /**
+             * Get the COMMAND that represents keyCode among the commands that control the player
+             * @param keyCode - The integer number representing a keyboard key
+             * @return One of exports.COMMANDS
+             */
+            getPlayerKeyCommand = function (keyCode) {
+                switch (keyCode) {
+                    case keys.left:
+                        return exports.COMMANDS.LEFT_DOWN;
+                        break;
+                    case keys.right:
+                        return exports.COMMANDS.RIGHT_DOWN;
+                        break;
                 }
-            }
-        };
+                return null;
+            },
 
-        /**
-         * Tiggered when a key is released. Will result _player.setCommand()
-         * being called with a COMMANDS.LEFT_RIGHT_UP as argument
-         * @param evt - keyboard event
-         */
-        var doKeyUp = function (evt){
-            if(_player_id != null) {
-                if(evt.keyCode == _lastCommandKeyCode) {
-                    _lastCommandKeyCode = null;
-                    _onCommandCallback(_player_id, exports.COMMANDS.LEFT_RIGHT_UP);
+            /**
+             * Get the COMMAND that represents keyCode among the commands that doesn't control the player
+             * @param keyCode - The integer number representing a keyboard key
+             * @return One of exports.COMMANDS
+             */
+            getSpecialKeyCommand = function (keyCode) {
+                switch (keyCode) {
+                    case keys.start:
+                        return exports.COMMANDS.START;
+                        break;
                 }
-            }
-        };
+                return null;
+            },
 
+            /**
+             * Tiggered when a key is pressed down. Will result in either _player.setCommand() or specialKeyCommandsCallback
+             * being called with a COMMAND as argument
+             * @param evt - keyboard event
+             */
+            doKeyDown = function (evt){
+                var issued_command = null;
+                if (_player_id !== null) {
+                    issued_command = getPlayerKeyCommand(evt.keyCode);
+                }
+                if (issued_command) {
+                    _last_command_key_code = evt.keyCode;
+                    _onCommandCallback(_player_id, issued_command);
+                } else {
+
+                    issued_command = getSpecialKeyCommand(evt.keyCode);
+                    if (issued_command) {
+                        specialKeyCommandsCallback(issued_command);
+                    }
+                }
+            },
+
+            /**
+             * Tiggered when a key is released. Will result _player.setCommand()
+             * being called with a COMMANDS.LEFT_RIGHT_UP as argument
+             * @param evt - keyboard event
+             */
+            doKeyUp = function (evt){
+                if(_player_id !== null) {
+                    if(evt.keyCode === _last_command_key_code) {
+                        _last_command_key_code = null;
+                        _onCommandCallback(_player_id, exports.COMMANDS.LEFT_RIGHT_UP);
+                    }
+                }
+
+
+        };
 
         /* Hacked together mobile phone tilt-support
          * Needs a code review
@@ -105,16 +112,14 @@ var shared = require('./shared.js');
             } else if (ax < -3.5) {
                 doKeyDown({keyCode: keys.left});
             } else {
-                doKeyUp({keyCode: _lastCommandKeyCode});
+                doKeyUp({keyCode: _last_command_key_code});
             }
             //ay = -e.accelerationIncludingGravity.y;
             //console.log
         });
         */
 
-        // Start listening to keyboard events
-        window.addEventListener('keydown',doKeyDown,true);
-        window.addEventListener('keyup',doKeyUp,true);
+        _init();
 
         return {
             start : function (player_id, onCommandCallback) {
@@ -132,18 +137,16 @@ var shared = require('./shared.js');
      * which will trigger player.setCommand()
      */
     exports.WebSocketInputReceiver = function (webSocket, player_id) {
-        var _started = false;
-        var _onCommandCallback = null;
+        var _started = false,
+            _onCommandCallback = null,
 
-        var onInputCallback = function (input_command) {
-            if (_started) {
-                _onCommandCallback(player_id, input_command);
-            }
+            onInputCallback = function (input_command) {
+                if (_started) {
+                    _onCommandCallback(player_id, input_command);
+                }
         };
 
         return {
-            /**
-             */
             start : function () {
                 if (!_started) {
                     // Hook up the InputDevice.onInputCallback to all incoming packets of type INPUT

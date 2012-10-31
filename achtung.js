@@ -181,95 +181,94 @@ var input = require('./input.js');
 
                             last_point = point;
                         });
-                };
+                    },
 
-                var getCollision = function (delta_time, players) {
-                    var collisions = [],
-                        _trail_touch_distance = ((settings.LINE_SIZE*2) / (settings.MOVEMENT_SPEED * delta_time)) + 1,
-                        that = this;
+                    getCollision = function (delta_time, players) {
+                        var collisions = [],
+                            _trail_touch_distance = ((settings.LINE_SIZE*2) / (settings.MOVEMENT_SPEED * delta_time)) + 1,
+                            that = this;
 
-                    if (_x < settings.LINE_SIZE / 2) {
-                        return settings.LINE_SIZE / 2 - _x; // Not accurate
-                    }
-                    if (_x > settings.GAME_WIDTH - settings.LINE_SIZE / 2) {
-                        return _x - (settings.GAME_WIDTH - settings.LINE_SIZE / 2);
-                    }
-                    if (_y < settings.LINE_SIZE / 2) {
-                        return settings.LINE_SIZE / 2 - _y; // Not accurate
-                    }
+                        if (_x < settings.LINE_SIZE / 2) {
+                            return settings.LINE_SIZE / 2 - _x; // Not accurate
+                        }
+                        if (_x > settings.GAME_WIDTH - settings.LINE_SIZE / 2) {
+                            return _x - (settings.GAME_WIDTH - settings.LINE_SIZE / 2);
+                        }
+                        if (_y < settings.LINE_SIZE / 2) {
+                            return settings.LINE_SIZE / 2 - _y; // Not accurate
+                        }
 
-                    if (_y > settings.GAME_HEIGHT - settings.LINE_SIZE / 2) {
-                        return _y - (settings.GAME_HEIGHT - settings.LINE_SIZE / 2);
-                    }
+                        if (_y > settings.GAME_HEIGHT - settings.LINE_SIZE / 2) {
+                            return _y - (settings.GAME_HEIGHT - settings.LINE_SIZE / 2);
+                        }
 
-                    _.each(players, function (player) {
-                        var trail = player.getTrail(),
-                            stop_at = player !== that ? trail.length : Math.max(-1, trail.length - _trail_touch_distance);
+                        _.each(players, function (player) {
+                            var trail = player.getTrail(),
+                                stop_at = player !== that ? trail.length : Math.max(-1, trail.length - _trail_touch_distance);
 
-                        _.some(trail, function (point, index) {
-                            if (index >= stop_at) {
-                                return true; // Simulate a "break;"
-                            }
+                            _.some(trail, function (point, index) {
+                                if (index >= stop_at) {
+                                    return true; // Simulate a "break;"
+                                }
 
-                            var distance = Math.sqrt(Math.pow(_x - point.x,2) + Math.pow(_y - point.y,2));
+                                var distance = Math.sqrt(Math.pow(_x - point.x,2) + Math.pow(_y - point.y,2));
 
-                            if (distance <= settings.LINE_SIZE) {
-                                collisions.push(distance);
-                            }
+                                if (distance <= settings.LINE_SIZE) {
+                                    collisions.push(distance);
+                                }
+                            });
                         });
-                    });
 
-                    collisions.sort(function (left, right) {
-                        return left.collision_distance - right.collision_distance;
-                    });
+                        collisions.sort(function (left, right) {
+                            return left.collision_distance - right.collision_distance;
+                        });
 
-                    if (collisions.length > 0) {
-                        return collisions[0];
-                    } else {
-                        return null;
-                    }
-                };
+                        if (collisions.length > 0) {
+                            return collisions[0];
+                        } else {
+                            return null;
+                        }
+                    },
 
-                var getTrail = function () {
-                    return _trail;
-                };
+                    getTrail = function () {
+                        return _trail;
+                    },
 
-                var kill = function () {
-                    alive = false;
-                    console.log("Player " + id + " " +  name + " died!");
-                };
+                    kill = function () {
+                        alive = false;
+                        console.log("Player " + id + " " +  name + " died!");
+                    },
 
-                var getName = function () {
-                    return name;
-                };
+                    getName = function () {
+                        return name;
+                    },
 
-                var isAlive = function () {
-                    return alive;
-                };
+                    isAlive = function () {
+                        return alive;
+                    },
 
-                var setCommand = function (command) {
-                    if (input_handler) {
-                        input_handler.setCommand(command);
-                    }
-                };
+                    setCommand = function (command) {
+                        if (input_handler) {
+                            input_handler.setCommand(command);
+                        }
+                    },
 
-                var _setCommand = function (command) {
-                    _last_command = command;
-                };
+                    _setCommand = function (command) {
+                        _last_command = command;
+                    },
 
-                var start = function () {
-                    if (input_device) {
-                        input_device.start(id);
-                    }
+                    start = function () {
+                        if (input_device) {
+                            input_device.start(id);
+                        }
 
-                    if (input_handler) {
-                        input_handler.start(this, _setCommand);
-                    }
+                        if (input_handler) {
+                            input_handler.start(this, _setCommand);
+                        }
+                    },
 
-                };
-
-                var addTrailPoint = function (point) {
-                    _trail.push(point);
+                    addTrailPoint = function (point) {
+                        _trail.push(point);
                 };
 
                 return {
