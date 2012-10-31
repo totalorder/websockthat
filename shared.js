@@ -77,19 +77,19 @@ var _ = require('underscore')._;
 
         webSocket.unregisterReceivedPacketCallback = function (handlerID) {
             var _foundIt = false;
-            _.each(packetCallbacks, function (callbacks, packetType) {
-                _.each(callbacks, function (callback, index) {
+            _.some(packetCallbacks, function (callbacks, packetType) {
+                _.some(callbacks, function (callback, index) {
                     if(callback.handlerID === handlerID) {
                         _foundIt = true;
                         packetCallbacks[packetType].splice(index, 1);
 
                         // Break out of the loop
-                        return _.breaker;
+                        return true; // Simulate a "break;"
                     }
                 });
                 if(_foundIt) {
                     // Break out of the loop
-                    return _.breaker;
+                    return true; // Simulate a "break;"
                 }
             });
 
@@ -230,10 +230,10 @@ var _ = require('underscore')._;
             },
 
             removeClient : function (client_id) {
-                _.each(client_datas, function (client_data, index) {
+                _.some(client_datas, function (client_data, index) {
                     if(client_data.id === client_id) {
                         client_datas.splice(index, 1);
-                        return _.breaker;
+                        return true; // Simulate a "break;";
                     }
                 });
             },

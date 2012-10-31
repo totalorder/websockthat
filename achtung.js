@@ -184,8 +184,9 @@ var input = require('./input.js');
                 };
 
                 var getCollision = function (delta_time, players) {
-                    var player;
-                    var collisions = [];
+                    var collisions = [],
+                        _trail_touch_distance = ((settings.LINE_SIZE*2) / (settings.MOVEMENT_SPEED * delta_time)) + 1,
+                        that = this;
 
                     if (_x < settings.LINE_SIZE / 2) {
                         return settings.LINE_SIZE / 2 - _x; // Not accurate
@@ -201,21 +202,22 @@ var input = require('./input.js');
                         return _y - (settings.GAME_HEIGHT - settings.LINE_SIZE / 2);
                     }
 
-                    var _trail_touch_distance = ((settings.LINE_SIZE*2) / (settings.MOVEMENT_SPEED * delta_time)) + 1;
+                    _.each(players, function (player) {
+                        var trail = player.getTrail(),
+                            stop_at = player !== that ? trail.length : Math.max(-1, trail.length - _trail_touch_distance);
 
-                    for (var i = 0; i < players.length; i++) {
-                        player = players[i];
+                        _.some(trail, function (point, index) {
+                            if (index >= stop_at) {
+                                return true; // Simulate a "break;"
+                            }
 
-                        var trail = player.getTrail();
-                        var stop_at = player !== this ? trail.length : Math.max(-1, trail.length - _trail_touch_distance);
-                        for (var ti = 0; ti < stop_at; ti++) {
-                            var point = trail[ti];
                             var distance = Math.sqrt(Math.pow(_x - point.x,2) + Math.pow(_y - point.y,2));
+
                             if (distance <= settings.LINE_SIZE) {
                                 collisions.push(distance);
                             }
-                        }
-                    }
+                        });
+                    });
 
                     collisions.sort(function (left, right) {
                         return left.collision_distance - right.collision_distance;

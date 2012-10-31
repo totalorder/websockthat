@@ -8,8 +8,7 @@ var _ = require('underscore')._;
 
 
 (function () { // Don't pollute the global namespace
-    var player_name = null,
-        local_player_settings = null,
+    var local_player_settings = null,
         lobby_ul = document.getElementById("lobby"),
         client_world = null,
 

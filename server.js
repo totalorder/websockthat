@@ -159,10 +159,10 @@ var _ = require('underscore')._;
                     client = null,
                     hello_handler = null;
 
-                _.each(_clients, function (client, index) {
+                _.some(_clients, function (client, index) {
                     if (client.getLocalID() !==  index) {
                         local_client_id = index;
-                        return _.breaker;
+                        return true; // Simulate a "break;"
                     }
                     return null;
                 });
