@@ -87,7 +87,7 @@ var config = require("./config.js"),
 
         /**
          * Run one tick of the simulation
-         * Gather input from all players, execute the simulation step, look for collissions and kill
+         * Gather input from all players, execute the simulation step, look for collisions and kill
          * any collided players
          */
         var _tick = function () {
@@ -173,7 +173,6 @@ var config = require("./config.js"),
                     if (tick_receiver) {
                         tick_receiver.gameOver();
                     }
-
                     if(_restartCallback) {
                         _restartCallback();
                     }

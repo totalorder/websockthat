@@ -13,43 +13,47 @@ var _ = require('underscore')._;
      * requested it
      */
     exports.Server = function () {
+        var next_game_id = 0,
+            _init = function () {
 
-        var _createGameOnGame = function () {
-                next_game_id += 1;
-                return new exports.Game(next_game_id, 1, 2);
+                // Create a new WebSocketServer and start listening
+                var address = { host: config.CONFIG.bind_to_address,
+                    port: config.CONFIG.bind_to_port },
+                    web_socket_server = new WebSocketServer(address),
+                    next_client_id = 0,
+                    next_game_id = 0,
+                    _game_on_game = _createGameOnGame(),
+                    _running_games = [];
+
+                console.log("listening to ", address);
+
+                /**
+                 * Listen for new connections on web_socket_server and set up listeners for all new clients
+                 * Also add all new clients to the list "clients" which will be the basis for creating all players
+                 */
+                web_socket_server.on('connection', function (clientWebSocket) {
+
+                    // Increment the next_client_id, that will be used to ID the next client
+                    // TODO: Not thread safe?
+                    next_client_id += 1;
+
+                    // Enhance the websocket with object support
+                    shared.addWebSocketObjectSupport(clientWebSocket);
+
+                    _game_on_game.newConnection(next_client_id, clientWebSocket);
+                    if (_game_on_game.hasStarted() || _game_on_game.hasMaxClients()) {
+                        _running_games.push(_game_on_game);
+                        _game_on_game = _createGameOnGame();
+                    }
+                });
             },
 
-            // Create a new WebSocketServer and start listening
-            address = { host: config.CONFIG.bind_to_address,
-                        port: config.CONFIG.bind_to_port },
-            web_socket_server = new WebSocketServer(address),
-            next_client_id = 0,
-            next_game_id = 0,
-            _game_on_game = _createGameOnGame(),
-            _running_games = [];
+            _createGameOnGame = function () {
+                next_game_id += 1;
+                return new exports.Game(next_game_id, 1, 2);
+        };
 
-        console.log("listening to ", address);
-
-        /**
-         * Listen for new connections on web_socket_server and set up listeners for all new clients
-         * Also add all new clients to the list "clients" which will be the basis for creating all players
-         *
-         */
-        web_socket_server.on('connection', function (clientWebSocket) {
-
-            // Increment the next_client_id, that will be used to ID the next client
-            // TODO: Not thread safe?
-            next_client_id += 1;
-
-            // Enhance the websocket with object support
-            shared.addWebSocketObjectSupport(clientWebSocket);
-
-            _game_on_game.newConnection(next_client_id, clientWebSocket);
-            if (_game_on_game.hasStarted() || _game_on_game.hasMaxClients()) {
-                _running_games.push(_game_on_game);
-                _game_on_game = _createGameOnGame();
-            }
-        });
+        _init();
     };
 
     exports.Game = function (id, minClients, maxClients) {
@@ -143,10 +147,57 @@ var _ = require('underscore')._;
             },
 
             _restart = function () {
-            _is_running = false;
-            _.each(_clients, function (client) {
-                _listenForStart(client);
-            });
+                _is_running = false;
+                _.each(_clients, function (client) {
+                    _listenForStart(client);
+                });
+            },
+
+            _newConnection = function (id, webSocket) {
+                console.log("new connection with id " + id);
+                var local_client_id = _clients.length,
+                    client = null,
+                    hello_handler = null;
+
+                _.each(_clients, function (client, index) {
+                    if (client.getLocalID() !==  index) {
+                        local_client_id = index;
+                        return _.breaker;
+                    }
+                    return null;
+                });
+
+                client = exports.Client(id, local_client_id, webSocket);
+                // Listen to HELLOs from the client
+                hello_handler = webSocket.registerReceivedPacketCallback(shared.PACKET_TYPES.HELLO, null, function (packet) {
+                    webSocket.unregisterReceivedPacketCallback(hello_handler);
+                    client.gotHello(packet.name);
+
+                    _sendLobbyPackets(); // Tell everyone our name!
+
+                    // Tell the outputHandler that we have a new client that should receive updates
+                    _tick_sender.addClient(client.getData());
+
+                    if (_hasMaxClients() && _isAllClientsSetUp()) {
+                        _start();
+                        return;
+                    }
+
+                    if (_min_clients !== null) {
+                        _listenForStart(client);
+                    }
+                });
+
+                _clients.push(client);
+                webSocket.setOnSendErrorCallback(function (message) {
+                    console.log("error when sending to client " + client.getID() + ": " + message +"\n" +
+                        "removing player...");
+                    _clients.splice(_clients.indexOf(client), 1);
+                    _tick_sender.removeClient(client.getID());
+                    console.log(_clients.length + " clients active");
+                });
+
+                _sendLobbyPackets(); // Tell everyone that someone has joined!
         };
 
         init();
@@ -158,48 +209,7 @@ var _ = require('underscore')._;
 
             hasMaxClients: _hasMaxClients,
 
-            newConnection: function (id, webSocket) {
-                console.log("new connection with id " + id);
-                var local_client_id = _clients.length;
-                _.each(_clients, function (client, index) {
-                    if (client.getLocalID() !==  index) {
-                        local_client_id = index;
-                        return _.breaker;
-                    }
-                    return null;
-                });
-
-                var client = exports.Client(id, local_client_id, webSocket),
-                     // Listen to HELLOs from the client
-                    helloHandler = webSocket.registerReceivedPacketCallback(shared.PACKET_TYPES.HELLO, null, function (packet) {
-                        webSocket.unregisterReceivedPacketCallback(helloHandler);
-                        client.gotHello(packet.name);
-
-                        _sendLobbyPackets(); // Tell everyone our name!
-
-                        // Tell the outputHandler that we have a new client that should receive updates
-                        _tick_sender.addClient(client.getData());
-
-                        if (_hasMaxClients() && _isAllClientsSetUp()) {
-                            _start();
-                            return;
-                        }
-
-                        if (_min_clients !== null) {
-                            _listenForStart(client);
-                        }
-                    });
-                _clients.push(client);
-                webSocket.setOnSendErrorCallback(function (message) {
-                    console.log("error when sending to client " + client.getID() + ": " + message +"\n" +
-                                "removing player...");
-                    _clients.splice(_clients.indexOf(client), 1);
-                    _tick_sender.removeClient(client.getID());
-                    console.log(_clients.length + " clients active");
-                });
-
-                _sendLobbyPackets(); // Tell everyone that someone has joined!
-            },
+            newConnection: _newConnection,
 
             restart: _restart,
 

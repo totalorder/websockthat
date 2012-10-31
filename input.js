@@ -133,7 +133,7 @@ var shared = require('./shared.js');
      */
     exports.WebSocketInputReceiver = function (webSocket, player_id) {
         var _started = false;
-        var _onCommandCallback = null; // onCommandCallback;
+        var _onCommandCallback = null;
 
         var onInputCallback = function (input_command) {
             if (_started) {

@@ -29,7 +29,7 @@ var input = require('./input.js');
 
         /**
          * Run one tick of the simulation
-         * Gather input from all players, execute the simulation step, look for collissions and kill
+         * Gather input from all players, execute the simulation step, look for collisions and kill
          * any collided players
          */
         var simulate = function (deltaTime) {
@@ -58,13 +58,13 @@ var input = require('./input.js');
 
             outputHandler.getTickPacket().ball = {x: _ball.x, y : _ball.y};
 
-            // Check for collissions for all players and how close to the impact spot they are
+            // Check for collisions for all players and how close to the impact spot they are
             // They are then sorted and killed in the order of closest to impact spot
             var collisions = [];
             for (i = 0; i < _players.length; i++) {
                 player = _players[i];
-                var collission = player.getCollision(deltaTime, _players);
-                if (collission) {
+                var collision = player.getCollision(deltaTime, _players);
+                if (collision) {
                     //player.kill();
                     //console.log("player " + player.getName() + " lost!");
                     bounceHorizontal();
