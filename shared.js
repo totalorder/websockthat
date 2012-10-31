@@ -2,10 +2,28 @@ var _ = require('underscore')._;
 
 (function(exports){
     exports.addWebSocketObjectSupport = function (webSocket) {
-        var onSendErrorCallback = null;
+        var onSendErrorCallback = null,
+            existing_onmessage = webSocket.onmessage,
+            packet_callbacks = {},
+            _next_packet_callback_handler_id = 0,
+
+            _executePacketCallbacks = function (packet) {
+                if(packet_callbacks[packet.type]) {
+                    _.each(packet_callbacks[packet.type], function (packet_callback) {
+                        var validator_result = packet;
+                        if (packet_callback.validator !== null) {
+                            validator_result = packet_callback.validator(packet);
+                        }
+                        if (validator_result) {
+                            packet_callback.callback(validator_result);
+                        }
+                    });
+                }
+        };
+
         webSocket.sendObject = function (obj) {
             var json_string = JSON.stringify(obj);
-            if (obj.type != 'TICK') {
+            if (obj.type !== 'TICK') {
                 console.log("sending: ", json_string);
             }
             try {
@@ -15,25 +33,6 @@ var _ = require('underscore')._;
                     onSendErrorCallback(e.toString());
                 } else {
                     throw e;
-                }
-            }
-        };
-
-        var existing_onmessage = webSocket.onmessage;
-        var packetCallbacks = {};
-        var _nextPacketCallbackHandlerID = 0;
-
-        var _executePacketCallbacks = function (packet) {
-            if(packetCallbacks[packet.type]) {
-                for (var i = 0; i < packetCallbacks[packet.type].length; i++) {
-                    var packetCallback = packetCallbacks[packet.type][i];
-                    var validator_result = packet;
-                    if (packetCallback.validator !== null) {
-                        validator_result = packetCallback.validator(packet);
-                    }
-                    if (validator_result) {
-                        packetCallback.callback(validator_result);
-                    }
                 }
             }
         };
@@ -65,35 +64,35 @@ var _ = require('underscore')._;
 
 
         webSocket.registerReceivedPacketCallback = function (packet_type, validator, callback) {
-            var _handlerID = _nextPacketCallbackHandlerID;
-            _nextPacketCallbackHandlerID++;
-            if (!packetCallbacks[packet_type]) {
-                packetCallbacks[packet_type] = [];
+            var _handler_id = _next_packet_callback_handler_id;
+            _next_packet_callback_handler_id += 1;
+            if (!packet_callbacks[packet_type]) {
+                packet_callbacks[packet_type] = [];
             }
 
-            packetCallbacks[packet_type].push({validator: validator, callback: callback, handlerID: _handlerID});
-            return _handlerID;
+            packet_callbacks[packet_type].push({validator: validator, callback: callback, handler_id: _handler_id});
+            return _handler_id;
         };
 
         webSocket.unregisterReceivedPacketCallback = function (handlerID) {
-            var _foundIt = false;
-            _.some(packetCallbacks, function (callbacks, packetType) {
+            var _found_it = false;
+            _.some(packet_callbacks, function (callbacks, packetType) {
                 _.some(callbacks, function (callback, index) {
-                    if(callback.handlerID === handlerID) {
-                        _foundIt = true;
-                        packetCallbacks[packetType].splice(index, 1);
+                    if(callback.handler_id === handlerID) {
+                        _found_it = true;
+                        packet_callbacks[packetType].splice(index, 1);
 
                         // Break out of the loop
                         return true; // Simulate a "break;"
                     }
                 });
-                if(_foundIt) {
+                if(_found_it) {
                     // Break out of the loop
                     return true; // Simulate a "break;"
                 }
             });
 
-            if(!_foundIt) {
+            if(!_found_it) {
                 throw "handler with ID " + handlerID + " not registered!";
             }
         };
@@ -173,35 +172,31 @@ var _ = require('underscore')._;
     };
 
     exports.WebSocketTickSender = function () {
-        var tick_packet = exports.createTickPacket(0);;
-        var client_datas = [];
-        var sendPacketToAllClients = function (packet, preprocessor) {
-            if (packet.type != exports.PACKET_TYPES.TICK) {
-                console.log("sending packet to all clients", packet);
-            }
-            for (var i = 0; i < client_datas.length; i++) {
-                var client_data = client_datas[i];
-                if (preprocessor) {
-                    packet = preprocessor(client_data.id, packet);
+        var tick_packet = exports.createTickPacket(0, ""),
+            client_datas = [],
+
+            sendPacketToAllClients = function (packet, preprocessor) {
+                if (packet.type !== exports.PACKET_TYPES.TICK) {
+                    console.log("sending packet to all clients", packet);
                 }
 
-                client_data.webSocket.sendObject(packet);
-            }
-        };
-
-        var startGame = function (options, player_infos) {
-            var players_packet = exports.createStartDataPacket(options, player_infos);
-            sendPacketToAllClients(players_packet, function (client_id, packet) {
-                for (var i = 0; i < packet.players.length; i++) {
-                    var player_data = packet.players[i];
-                    if (client_id == player_data.id) {
-                        player_data.you = true;
-                    } else {
-                        player_data.you = false;
+                _.each(client_datas, function (client_data) {
+                    if (preprocessor) {
+                        packet = preprocessor(client_data.id, packet);
                     }
-                }
-                return packet;
-            });
+
+                    client_data.webSocket.sendObject(packet);
+                });
+            },
+
+            startGame = function (options, player_infos) {
+                var players_packet = exports.createStartDataPacket(options, player_infos);
+                sendPacketToAllClients(players_packet, function (client_id, packet) {
+                    _.each(packet.players, function (player_data) {
+                        player_data.you = client_id === player_data.id;
+                    });
+                    return packet;
+                });
         };
 
         return {
@@ -214,7 +209,7 @@ var _ = require('underscore')._;
             },
 
             getTickPacketPlayerData : function (player_id) {
-                if(tick_packet.players[player_id] == undefined) {
+                if(tick_packet.players[player_id] === undefined) {
                     tick_packet.players[player_id] = {};
                 }
                 return tick_packet.players[player_id];
@@ -247,19 +242,20 @@ var _ = require('underscore')._;
     };
 
     exports.WebSocketTickReceiver = function (webSocket) {
-        var _started = false;
-        var _callbackRegistered = false;
-        var _simulator;
-        var _TPSTextCallback = null;
-        var onTickReceived = function (packet) {
-            if (!_started) {
-                return;
-            }
+        var _started = false,
+            _callback_registered = false,
+            _simulator,
+            _TPSTextCallback = null,
 
-            if (_TPSTextCallback) {
-                _TPSTextCallback(packet.tps_text);
-            }
-            _simulator.receiveExternalUpdate(packet);
+            onTickReceived = function (packet) {
+                if (!_started) {
+                    return;
+                }
+
+                if (_TPSTextCallback) {
+                    _TPSTextCallback(packet.tps_text);
+                }
+                _simulator.receiveExternalUpdate(packet);
         };
 
         return {
@@ -267,10 +263,10 @@ var _ = require('underscore')._;
                 _simulator = simulator;
                 _started = true;
                 _TPSTextCallback = TPSTextCallback;
-                if(!_callbackRegistered) {
+                if(!_callback_registered) {
                     webSocket.registerReceivedPacketCallback(exports.PACKET_TYPES.TICK, null, onTickReceived);
                 }
-                _callbackRegistered = true;
+                _callback_registered = true;
 
             },
 
@@ -285,8 +281,8 @@ var _ = require('underscore')._;
      * @param webSocket
      */
     exports.WebSocketInputSender = function (webSocket) {
-        var _started = false;
-        var player = null;
+        var _started = false,
+            player = null;
 
         return {
             /**
@@ -308,8 +304,8 @@ var _ = require('underscore')._;
     };
 
     exports.LocalOutputHandler = function (inputHandler_onTick, onGameOver) {
-        var tick_packet = exports.createTickPacket(0);
-        var startGame = function (options, player_infos) {
+        var tick_packet = exports.createTickPacket(0, ""),
+            startGame = function (options, player_infos) {
         };
 
         return {
@@ -318,7 +314,6 @@ var _ = require('underscore')._;
             },
 
             tickEnded : function (tick_id) {
-                //console.log("tick_packet", tick_packet);
                 inputHandler_onTick(tick_packet);
                 tick_packet = exports.createTickPacket(tick_id);
             },
@@ -335,62 +330,13 @@ var _ = require('underscore')._;
             },
 
             getTickPacketPlayerData : function (player_id) {
-                if(tick_packet.players[player_id] == undefined) {
+                if(tick_packet.players[player_id] === undefined) {
                     tick_packet.players[player_id] = {};
                 }
                 return tick_packet.players[player_id];
             },
 
             startGame : startGame
-        };
-    };
-
-    exports.LocalInputHandler = function () {
-        var _players = null;
-        var _started = false;
-        var _callbackRegistered = false;
-        var _simulator = null;
-
-        var onTickReceived = function (packet) {
-            if (!_started) {
-                return;
-            }
-
-            //_simulator.receiveUpdate(packet);
-
-            for (var i = 0; i < _players.length; i++) {
-                var player = _players[i];
-                // TODO: Fix this ugliness!
-                if (packet.players[player.id]) {
-                    if (player.setPlayerData) {
-                        player.setPlayerData(packet.players[player.id]);
-                    } else {
-                        player.receiveUpdate(packet.players[player.id]);
-                    }
-                }
-            }
-        };
-
-        var onInputReceived = function (player_id, command) {
-            _simulator.addInput(player_id, command);
-        };
-
-        return {
-            start : function (players, simulator) {
-                _started = true;
-                _simulator = simulator;
-                _players = players;
-                _callbackRegistered = true;
-            },
-
-            stop : function () {
-                _started = false;
-            },
-
-            gameOver : function () {},
-
-            onTickReceived : onTickReceived,
-            onInputReceived : onInputReceived
         };
     };
 
