@@ -77,7 +77,6 @@ var input = require('./input.js');
 
                 // Kill off players in the order of closest to impact spot
                 // End the simulation if there is only one player alive, making hen the winner
-                //for (i = 0; i < collisions.length; i++) {
                 _.each(collisions, function (collision) {
                     player = collision.player;
                     player.kill();

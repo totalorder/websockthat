@@ -2,7 +2,7 @@
 # Kill off the input.WSInputDevice
 # refactor shared.js into better modules
 # Kill off all TODO-comments
-underscore all ugly loops
+# underscore all ugly loops
 document everything
 fix the local game
 Make pong!
