@@ -8,13 +8,15 @@ var input = require('./input.js');
 (function(exports){
     exports.AchtungSimulator = function (tick_sender, options) {
         // Set up internal data structures
-        var _last_alive,
+        var DESIRED_MOVEMENT_SPEED = 100,
+            _last_alive,
             _players = null,
+            _alive_players = null,
             _players_map = {},
 
             populatePlayersMap = function () {
                 _players_map = {};
-                _.each(_players, function (player) {
+                _.each(_alive_players, function (player) {
                     _players_map[player.id] = player;
                 });
             },
@@ -29,6 +31,13 @@ var input = require('./input.js');
              * any collided players
              */
             simulate = function (delta_time) {
+                // Since the naive collision detection requires that there is at least one trail point every LINE_SIZE-pixel
+                // to make it impossible to slip between trail points - we make sure we advance by one "speed step" every
+                // tick instead of by the time between the ticks
+                // This results in the TPS controlling the game speed, instead of just increasing the number of simulation
+                // steps per second.
+                delta_time *= getDesiredTPS();
+
                 // Set up internal data structures
                 var player_input_states = [],
                     player,
@@ -41,20 +50,20 @@ var input = require('./input.js');
 
                 // Fetch the input state from all players. This is done at the same time to ensure that all players'
                 // input is sampled at the same time since it can change during the simulation-step
-                _.each(_players, function (player) {
+                _.each(_alive_players, function (player) {
                     player_input_states.push(player.getInputState());
                 });
 
                 // Run the simulation step for all players, passing along the tick_sender to send off any data generated
-                _.each(_players, function (player, index) {
+                _.each(_alive_players, function (player, index) {
                     player.simulate(delta_time, player_input_states[index], tick_sender);
                 });
 
                 // Check for collisions for all players and how close to the impact spot they are
                 // They are then sorted and killed in the order of closest to impact spot
 
-                _.each(_players, function (player, index) {
-                    var collision_distance = player.getCollision(delta_time, _players);
+                _.each(_alive_players, function (player, index) {
+                    var collision_distance = player.getCollision(delta_time, _alive_players);
                     if (collision_distance !== null) {
                         collisions.push({player: player, collision_distance: collision_distance, player_number : index});
                     }
@@ -75,7 +84,7 @@ var input = require('./input.js');
 
                     // Check if any one is still alive
                     var players_alive = 0;
-                    _.each(_players, function (player) {
+                    _.each(_alive_players, function (player) {
                         if (player.isAlive()) {
                             players_alive += 1;
                             _last_alive = player;
@@ -84,8 +93,7 @@ var input = require('./input.js');
 
                     console.log("removing player " + collision.player_number);
                     // Remove the player from the simulation
-                    // TODO: Keep the player in the _players list and check for isAlive when accessing the list instead
-                    _players.splice(collision.player_number, 1);
+                    _alive_players.splice(collision.player_number, 1);
 
                     // End the simulation of one or less players are alive - GAME OVER
                     if (players_alive <= 1) {
@@ -102,6 +110,10 @@ var input = require('./input.js');
              */
             start = function(players) {
                 _players = players;
+                _alive_players = [];
+                _.each(_players, function (player) {
+                    _alive_players.push(player);
+                });
                 populatePlayersMap();
             },
 
@@ -112,7 +124,7 @@ var input = require('./input.js');
             },
 
             createPlayer = function (player_data, player_settings) {
-                return new Player(player_data.id, player_data.name, player_data.input_device, player_data.input_handler, player_settings, player_data.x, player_data.y, player_data.direction, player_data.color);
+                return new Player(player_data.id, player_data.name, player_settings, player_data.x, player_data.y, player_data.direction, player_data.color);
             },
 
             draw = function (ctx) {},
@@ -125,7 +137,21 @@ var input = require('./input.js');
                 });
             },
 
-            Player = function (id, name, input_device, input_handler, settings, x, y, direction, color) {
+            /**
+             * Line size: 5
+             * Desired movement speed: 10
+             * TPS: desired / line size = 2
+             */
+
+            getDesiredTPS = function () {
+                // Calculate the desired TPS based on that we want one tick every LINE_SIZE distance traveled
+                // This is to make sure our naive collision detection is can count on that there is at least
+                // one trail point every LINE_SIZE-pixel, making it impossible to slip between trail points.
+                // This assumes createDefaultOptions uses a MOVEMENT_SPEED that is equal to LINE_SIZE
+                return DESIRED_MOVEMENT_SPEED / options.LINE_SIZE;
+            },
+
+            Player = function (id, name, settings, x, y, direction, color) {
 
                 var _x = x,
                     _y = y,
@@ -248,29 +274,16 @@ var input = require('./input.js');
                         return alive;
                     },
 
-                    setCommand = function (command) {
-                        if (input_handler) {
-                            input_handler.setCommand(command);
-                        }
-                    },
-
-                    _setCommand = function (command) {
+                    setInternalInputCommand = function (command) {
                         _last_command = command;
                     },
 
                     start = function () {
-                        if (input_device) {
-                            input_device.start(id);
-                        }
-
-                        if (input_handler) {
-                            input_handler.start(this, _setCommand);
-                        }
                     },
 
                     addTrailPoint = function (point) {
                         _trail.push(point);
-                };
+                    };
 
                 return {
                     simulate: simulate,
@@ -278,7 +291,6 @@ var input = require('./input.js');
                     getTrail: getTrail,
                     getInputState: getInputState,
                     getCollision: getCollision,
-                    setCommand: setCommand,
                     kill: kill,
                     getName: getName,
                     start : start,
@@ -286,7 +298,7 @@ var input = require('./input.js');
                     id : id,
                     color : color,
                     isAlive : isAlive,
-                    setInternalInputCommand : _setCommand, // TODO: Not private anymore. Clean up,
+                    setInternalInputCommand : setInternalInputCommand,
                     receiveExternalUpdate : receiveExternalUpdate
                 };
             };
@@ -298,17 +310,24 @@ var input = require('./input.js');
             setUpPlayerData : setUpPlayerData,
             createPlayer : createPlayer,
             draw : draw,
-            onInputReceived : onInputReceived
+            onInputReceived : onInputReceived,
+            getDesiredTPS : getDesiredTPS
         };
     };
 
+    /**
+     * Return a dictionary containing the default options for the game
+     * Since the naive collision detection requires that there is at least one trail point every LINE_SIZE-pixel
+     * to make it impossible to slip between trail points - we need to set MOVEMENT_SPEED to be equal to LINE_SIZE
+     * The actual game speed is controlled by DESIRED_MOVEMENT_SPEED by affecting the result of getDesiredTPS()
+     */
     exports.createDefaultOptions = function () {
+        var LINE_SIZE = 3;
         return {
-            // The desired number of ticks per second
-            DESIRED_TPS : 20,
+            ALLOW_TPS_COMPENSATION : false,
             TURNING_SPEED : 5,
-            MOVEMENT_SPEED : 10,
-            LINE_SIZE : 3,
+            MOVEMENT_SPEED : LINE_SIZE, // See function docstring
+            LINE_SIZE : LINE_SIZE,
             GAME_WIDTH : 800,
             GAME_HEIGHT : 800
         };

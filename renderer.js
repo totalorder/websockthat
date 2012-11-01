@@ -298,7 +298,7 @@ var _ = require('underscore')._;
 
 		};
 
-    exports.StubRenderer = function (element_id, settings, world) {
+    exports.StubRenderer = function (element_id, settings, world, simulator) {
         return {
             getFrameRenderTime : function() {
                 return 0;

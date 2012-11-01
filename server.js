@@ -37,7 +37,6 @@ var _ = require('underscore')._;
                 web_socket_server.on('connection', function (client_web_socket) {
 
                     // Increment the next_client_id, that will be used to ID the next client
-                    // TODO: Not thread safe?
                     next_client_id += 1;
 
                     // Enhance the websocket with object support

@@ -18,10 +18,7 @@ var config = require("./config.js"),
             TURNING_SPEED = options.TURNING_SPEED,
             MOVEMENT_SPEED = options.MOVEMENT_SPEED,
             LINE_SIZE = options.LINE_SIZE,
-
-            // Calculate the desired TPS and movement speed based on that we want one tick every LINE_SIZE distance traveled
-            DESIRED_TPS = (MOVEMENT_SPEED / LINE_SIZE) * MOVEMENT_SPEED, // TODO: Document this
-
+            DESIRED_TPS = simulator.getDesiredTPS(),
 
             // Set up internal data structures
             _game_started = false,
@@ -46,11 +43,6 @@ var config = require("./config.js"),
             },
 
             _init = function () {
-                // TODO: Why? Document this
-                MOVEMENT_SPEED = LINE_SIZE;
-                // Recalculate the speeds based on the ticks per second
-                MOVEMENT_SPEED = MOVEMENT_SPEED * DESIRED_TPS;
-                TURNING_SPEED = TURNING_SPEED * DESIRED_TPS;
             },
 
             /**
@@ -93,8 +85,18 @@ var config = require("./config.js"),
              * any collided players
              */
             _tick = function () {
-                var delta_time = _desired_tick_interval / 1000,
-                    result = simulator.simulate(delta_time);
+                var delta_time = null,
+                    result;
+
+                // Calculate the time between now and the last tick. If TPS compensation is not allowed, we will
+                // report the desired delta time, making the game slow down instead of making fewer simulation steps
+                // Divide by 1000 to get the value in seconds since the intervals are in milliseconds.
+                if (options.ALLOW_TPS_COMPENSATION ) {
+                    delta_time = _tick_interval / 1000.0;
+                } else {
+                    delta_time = _desired_tick_interval / 1000.0;
+                }
+                result = simulator.simulate(delta_time);
 
                 _number_of_ticks += 1;
 
@@ -253,10 +255,14 @@ var config = require("./config.js"),
 
                     var new_player = _createPlayer(player_data);
                     new_player.start();
+                    if (player_data.input_device) {
+                        player_data.input_device.start(player_data.id);
+                    }
                     _rendering_engine.create(new_player);
                 });
 
                 simulator.start(_players);
+
 
                 // Start everything!
                 _rendering_engine.start();

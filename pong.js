@@ -186,7 +186,7 @@ var input = require('./input.js');
                 }
             };
 
-            var _setCommand = function (command) {
+            var setInternalInputCommand = function (command) {
                 _lastCommand = command;
             };
 
@@ -196,7 +196,7 @@ var input = require('./input.js');
                 }
 
                 if (input_handler) {
-                    input_handler.start(this, _setCommand);
+                    input_handler.start(this, setInternalInputCommand);
                 }
 
             };
@@ -223,7 +223,7 @@ var input = require('./input.js');
                 id : id,
                 color : color,
                 isAlive : isAlive,
-                setInternalInputCommand : _setCommand // TODO: Not private anymore. Clean up
+                setInternalInputCommand : setInternalInputCommand
             };
         };
 
