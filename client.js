@@ -1,5 +1,6 @@
 "use strict";
 
+var communication = require("./communication.js");
 var shared = require("./shared.js");
 var world = require("./world.js");
 var input = require("./input.js");
@@ -51,7 +52,7 @@ var _ = require('underscore')._;
             console.log("waiting for connection open");
             web_socket.onopen = function() {
                 // Send a HELLO to the server, telling it our name and that we're interested in chatting with it
-                web_socket.sendObject(shared.createHelloPacket(local_player_settings.name));
+                web_socket.sendObject(communication.createHelloPacket(local_player_settings.name));
 
                 // Set up an InputHandler that will listen for and react to all incoming data that is about the in-game
                 // action
@@ -63,7 +64,7 @@ var _ = require('underscore')._;
                 // the InputDevice detects the START-input-event
                     input_device = new input.LocalInputDevice(local_player_settings.keys, function (command) {
                         if (command === input.COMMANDS.START) {
-                            web_socket.sendObject(shared.createStartPacket());
+                            web_socket.sendObject(communication.createStartPacket());
                             console.log("waiting for players packet!");
                         }
                 });
@@ -85,7 +86,7 @@ var _ = require('underscore')._;
              * Sets our LocalInputDevice as the input for the local player and passes along a WebSocketInputSender
              * that will relay all input-commands to the server
              */
-            web_socket.registerReceivedPacketCallback(shared.PACKET_TYPES.START_DATA, null, function (packet) {
+            web_socket.registerReceivedPacketCallback(communication.PACKET_TYPES.START_DATA, null, function (packet) {
 
                 // Create a new World passing along the game-options received from the server
                 // Passing in our WebSocketTickReceiver will let the World notify it when the game starts and what
@@ -110,7 +111,7 @@ var _ = require('underscore')._;
 
         _registerForGameOverPackets = function (web_socket) {
             // Register for incoming packets of the type GAME_OVER and notify the World if the server says it's game over
-            web_socket.registerReceivedPacketCallback(shared.PACKET_TYPES.GAME_OVER, null, function (packet) {
+            web_socket.registerReceivedPacketCallback(communication.PACKET_TYPES.GAME_OVER, null, function (packet) {
                 console.log("GAME OVER!");
                 client_world.gameOver();
             });
@@ -118,7 +119,7 @@ var _ = require('underscore')._;
 
         _registerForLobbyStatePackets = function (web_socket) {
             // Register for incoming pakcets of the type LOBBY_STATE
-            web_socket.registerReceivedPacketCallback(shared.PACKET_TYPES.LOBBY_STATE, null, function (packet) {
+            web_socket.registerReceivedPacketCallback(communication.PACKET_TYPES.LOBBY_STATE, null, function (packet) {
                 while (lobby_ul.hasChildNodes()) {
                     lobby_ul.removeChild(lobby_ul.lastChild);
                 }

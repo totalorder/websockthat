@@ -1,6 +1,7 @@
 "use strict";
 
 var _ = require('underscore')._;
+var communication = require("./communication.js");
 
 (function(exports){
     exports.addWebSocketObjectSupport = function (webSocket) {
@@ -101,84 +102,13 @@ var _ = require('underscore')._;
 
 
     };
-    exports.PACKET_TYPES = {
-        TICK : 'TICK',
-        INPUT : 'INPUT',
-        START : 'START',
-        HELLO : 'HELLO',
-        START_DATA : 'START_DATA',
-        GAME_OVER : 'GAME_OVER',
-        LOBBY_STATE : 'LOBBY_STATE'
-    };
-
-    exports.createPacket = function () {
-        return {};
-    };
-
-    exports.createTickPacket = function (tick_number, tps_text) {
-        var packet = exports.createPacket();
-        packet.type = exports.PACKET_TYPES.TICK;
-        packet.tick_number = tick_number;
-        packet.players = {};
-        packet.tps_text = tps_text;
-        return packet;
-    };
-
-    exports.createLobbyStatePacket = function (min_players, max_players, connected_players, players_ready, player_infos) {
-        var packet = exports.createPacket();
-        packet.type = exports.PACKET_TYPES.LOBBY_STATE;
-        packet.min_players = max_players;
-        packet.max_players = max_players;
-        packet.connected_players = connected_players;
-        packet.players_ready = players_ready;
-        packet.player_infos = player_infos;
-        return packet;
-    };
-
-    exports.createGameOverPacket = function () {
-        var packet = exports.createPacket();
-        packet.type = exports.PACKET_TYPES.GAME_OVER;
-        return packet;
-    };
-
-    exports.setTickPacketPlayerData = function (tick_packet, player_id, data) {
-        tick_packet.players[player_id] = data;
-    };
-
-    exports.createInputPacket = function (command) {
-        var packet = exports.createPacket();
-        packet.type = exports.PACKET_TYPES.INPUT;
-        packet.command = command;
-        return packet;
-    };
-
-    exports.createStartDataPacket = function (options, players) {
-        var packet = exports.createPacket();
-        packet.type = exports.PACKET_TYPES.START_DATA;
-        packet.players = players;
-        packet.options = options;
-        return packet;
-    };
-
-    exports.createHelloPacket = function (name) {
-        var packet = exports.createPacket();
-        packet.type = exports.PACKET_TYPES.HELLO;
-        packet.name = name;
-        return packet;
-    };
-
-    exports.createStartPacket = function () {
-        var packet = exports.createPacket();
-        packet.type = exports.PACKET_TYPES.START;
-        return packet;
-    };
 
     exports.WebSocketTickSender = function () {
-        var tick_packet = exports.createTickPacket(0, ""),
+        var tick_packet = communication.createTickPacket(0, ""),
             client_datas = [],
 
             sendPacketToAllClients = function (packet, preprocessor) {
-                if (packet.type !== exports.PACKET_TYPES.TICK) {
+                if (packet.type !== communication.PACKET_TYPES.TICK) {
                     console.log("sending packet to all clients", packet);
                 }
 
@@ -192,7 +122,7 @@ var _ = require('underscore')._;
             },
 
             startGame = function (options, player_infos) {
-                var players_packet = exports.createStartDataPacket(options, player_infos);
+                var players_packet = communication.createStartDataPacket(options, player_infos);
                 sendPacketToAllClients(players_packet, function (client_id, packet) {
                     _.each(packet.players, function (player_data) {
                         player_data.you = client_id === player_data.id;
@@ -203,7 +133,7 @@ var _ = require('underscore')._;
 
         return {
             setPlayerData : function (player_id, trail_point) {
-                exports.setTickPacketPlayerData(tick_packet, player_id, trail_point);
+                communication.setTickPacketPlayerData(tick_packet, player_id, trail_point);
             },
 
             getTickPacket : function () {
@@ -219,7 +149,7 @@ var _ = require('underscore')._;
 
             tickEnded : function (tick_id, tps_text) {
                 sendPacketToAllClients(tick_packet);
-                tick_packet = exports.createTickPacket(tick_id, tps_text);
+                tick_packet = communication.createTickPacket(tick_id, tps_text);
             },
 
             addClient : function (client_data) {
@@ -236,7 +166,7 @@ var _ = require('underscore')._;
             },
 
             gameOver : function () {
-                sendPacketToAllClients(exports.createGameOverPacket());
+                sendPacketToAllClients(communication.createGameOverPacket());
             },
 
             startGame : startGame
@@ -266,7 +196,7 @@ var _ = require('underscore')._;
                 _started = true;
                 _TPSTextCallback = TPSTextCallback;
                 if(!_callback_registered) {
-                    webSocket.registerReceivedPacketCallback(exports.PACKET_TYPES.TICK, null, onTickReceived);
+                    webSocket.registerReceivedPacketCallback(communication.PACKET_TYPES.TICK, null, onTickReceived);
                 }
                 _callback_registered = true;
 
@@ -300,24 +230,24 @@ var _ = require('underscore')._;
             },
 
             onInputReceived : function (player_id, command) {
-                webSocket.sendObject(exports.createInputPacket(command));
+                webSocket.sendObject(communication.createInputPacket(command));
             }
         };
     };
 
     exports.LocalOutputHandler = function (inputHandler_onTick, onGameOver) {
-        var tick_packet = exports.createTickPacket(0, ""),
+        var tick_packet = communication.createTickPacket(0, ""),
             startGame = function (options, player_infos) {
         };
 
         return {
             setPlayerData : function (player_id, trail_point) {
-                exports.setTickPacketPlayerData(tick_packet, player_id, trail_point);
+                communication.setTickPacketPlayerData(tick_packet, player_id, trail_point);
             },
 
             tickEnded : function (tick_id) {
                 inputHandler_onTick(tick_packet);
-                tick_packet = exports.createTickPacket(tick_id);
+                tick_packet = communication.createTickPacket(tick_id);
             },
 
             addClient : function (client_data) {

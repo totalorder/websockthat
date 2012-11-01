@@ -1,5 +1,6 @@
 "use strict";
 
+var communication = require("./communication.js");
 var shared = require('./shared.js');
 
 (function(exports){
@@ -153,7 +154,7 @@ var shared = require('./shared.js');
                 if (!_started) {
                     // Hook up the InputDevice.onInputCallback to all incoming packets of type INPUT
                     // from the clients websocket
-                    web_socket.registerReceivedPacketCallback(shared.PACKET_TYPES.INPUT, function (packet) { return packet.command; }, onInputCallback);
+                    web_socket.registerReceivedPacketCallback(communication.PACKET_TYPES.INPUT, function (packet) { return packet.command; }, onInputCallback);
                 }
 
                 _started = true;

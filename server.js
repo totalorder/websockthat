@@ -1,6 +1,7 @@
 "use strict";
 
 var WebSocketServer = require('ws').Server,
+    communication = require("./communication.js"),
     shared = require('./shared.js'),
     world = require('./world.js'),
     input = require('./input.js'),
@@ -91,7 +92,7 @@ var _ = require('underscore')._;
                     player_infos.push({id: client.getID(), name : client.getName(), is_ready : client.isReady(), 'color': client.getColor()});
                 });
 
-                return shared.createLobbyStatePacket(_min_clients, _max_clients, _clients.length, _getNumberOfClientsReady(), player_infos);
+                return communication.createLobbyStatePacket(_min_clients, _max_clients, _clients.length, _getNumberOfClientsReady(), player_infos);
             },
 
             _sendPacketToAllClients = function (packet) {
@@ -139,7 +140,7 @@ var _ = require('underscore')._;
             },
 
             _listenForStart = function (client) {
-                var start_handler = client.getWebSocket().registerReceivedPacketCallback(shared.PACKET_TYPES.START, null, function (packet) {
+                var start_handler = client.getWebSocket().registerReceivedPacketCallback(communication.PACKET_TYPES.START, null, function (packet) {
                     client.getWebSocket().unregisterReceivedPacketCallback(start_handler);
                     client.gotStart();
                     if(_clients.length >= _min_clients && _getNumberOfClientsReady() === _clients.length ) {
@@ -171,7 +172,7 @@ var _ = require('underscore')._;
 
                 client = exports.Client(id, local_client_id, web_socket);
                 // Listen to HELLOs from the client
-                hello_handler = web_socket.registerReceivedPacketCallback(shared.PACKET_TYPES.HELLO, null, function (packet) {
+                hello_handler = web_socket.registerReceivedPacketCallback(communication.PACKET_TYPES.HELLO, null, function (packet) {
                     web_socket.unregisterReceivedPacketCallback(hello_handler);
                     client.gotHello(packet.name);
 
