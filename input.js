@@ -35,7 +35,7 @@ var websocktransport = require('./websocktransport.js');
 
             /*
              * Get the COMMAND that represents keyCode among the commands that control the player
-             * @param keyCode - The integer number representing a keyboard key
+             * @param key_code - The integer number representing a keyboard key
              * @return One of exports.COMMANDS
              */
             getPlayerKeyCommand = function (key_code) {

@@ -4,6 +4,11 @@
 # Kill off all TODO-comments
 # underscore all ugly loops
 document everything
-fix the local game
+   documentation remaining:
+       client.js
+       renderer.js
+       input.js
 Make pong!
+fix the local game
+fix all remaining jslint issues
 move from fakerequire + nodejs-require to RequireJS + nodejs-RequireJS
