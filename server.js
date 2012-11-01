@@ -42,8 +42,6 @@ var _ = require('underscore')._;
              * @constructor
              */
             _init = function () {
-
-
                 var address = { host: config.CONFIG.bind_to_address,
                     port: config.CONFIG.bind_to_port },
                     // Create a new WebSocketServer and start listening
@@ -383,11 +381,11 @@ var _ = require('underscore')._;
             _got_start = false,
 
             // Create a new WebSocketInputReceiver listening to the clients web_socket
-            _input_receiver = input.WebSocketInputReceiver(web_socket, id);
+            _input_receiver = websocktransport.WebSocketInputReceiver(web_socket, id);
 
         return {
             getData : function () {
-                return {id : _id, name: _name, webSocket: _web_socket, input_receiver: _input_receiver, color: _color };
+                return {id : _id, name: _name, web_socket: _web_socket, input_receiver: _input_receiver, color: _color };
             },
 
             getID : function () {

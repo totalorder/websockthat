@@ -134,37 +134,4 @@ var websocktransport = require('./websocktransport.js');
             }
         };
     };
-
-    /**
-     * An input device that exposes a listener callback onInputCallback
-     * which will trigger player.setCommand()
-     */
-    exports.WebSocketInputReceiver = function (web_socket, player_id) {
-        var _started = false,
-            _onCommandCallback = null,
-
-            onInputCallback = function (input_command) {
-                if (_started) {
-                    _onCommandCallback(player_id, input_command);
-                }
-        };
-
-        return {
-            start : function () {
-                if (!_started) {
-                    // Hook up the InputDevice.onInputCallback to all incoming packets of type INPUT
-                    // from the clients websocket
-                    web_socket.registerReceivedPacketCallback(communication.PACKET_TYPES.INPUT, function (packet) { return packet.command; }, onInputCallback);
-                }
-
-                _started = true;
-            },
-
-            onInputCallback : onInputCallback,
-
-            setOnCommandCallback : function (callback) {
-                _onCommandCallback = callback;
-            }
-        };
-    };
 })(typeof exports === 'undefined'? this['input']={}: exports);
