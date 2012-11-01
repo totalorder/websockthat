@@ -3,7 +3,7 @@
  * Implements the GameModule-interface
  *
  * Exports:
- *  AchtungSimulator:  Game engine that implements the Simulator-interface
+ *  AchtungSimulator: Game engine that implements the Simulator-interface
  *  createDefaultOptions: Returns the default options for the Game-module
  *  getSimulatorClass: Returns the AchtungSimulator
  */
