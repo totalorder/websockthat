@@ -182,7 +182,7 @@ var config = require("./config.js"),
                 })();
             },
 
-            /**
+            /*
              * Create a clean World and set up player objects, rendering engine and start ticking if
              * an tick_sender is specified.
              *

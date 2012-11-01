@@ -30,13 +30,13 @@ var shared = require('./shared.js');
                 window.addEventListener('keyup',doKeyUp,true);
             },
 
-            /**
+            /*
              * Get the COMMAND that represents keyCode among the commands that control the player
              * @param keyCode - The integer number representing a keyboard key
              * @return One of exports.COMMANDS
              */
-            getPlayerKeyCommand = function (keyCode) {
-                switch (keyCode) {
+            getPlayerKeyCommand = function (key_code) {
+                switch (key_code) {
                     case keys.left:
                         return exports.COMMANDS.LEFT_DOWN;
                         break;
@@ -47,13 +47,13 @@ var shared = require('./shared.js');
                 return null;
             },
 
-            /**
+            /*
              * Get the COMMAND that represents keyCode among the commands that doesn't control the player
              * @param keyCode - The integer number representing a keyboard key
              * @return One of exports.COMMANDS
              */
-            getSpecialKeyCommand = function (keyCode) {
-                switch (keyCode) {
+            getSpecialKeyCommand = function (key_code) {
+                switch (key_code) {
                     case keys.start:
                         return exports.COMMANDS.START;
                         break;
@@ -61,7 +61,7 @@ var shared = require('./shared.js');
                 return null;
             },
 
-            /**
+            /*
              * Tiggered when a key is pressed down. Will result in either _player.setCommand() or specialKeyCommandsCallback
              * being called with a COMMAND as argument
              * @param evt - keyboard event
@@ -83,7 +83,7 @@ var shared = require('./shared.js');
                 }
             },
 
-            /**
+            /*
              * Tiggered when a key is released. Will result _player.setCommand()
              * being called with a COMMANDS.LEFT_RIGHT_UP as argument
              * @param evt - keyboard event
@@ -136,7 +136,7 @@ var shared = require('./shared.js');
      * An input device that exposes a listener callback onInputCallback
      * which will trigger player.setCommand()
      */
-    exports.WebSocketInputReceiver = function (webSocket, player_id) {
+    exports.WebSocketInputReceiver = function (web_socket, player_id) {
         var _started = false,
             _onCommandCallback = null,
 
@@ -151,7 +151,7 @@ var shared = require('./shared.js');
                 if (!_started) {
                     // Hook up the InputDevice.onInputCallback to all incoming packets of type INPUT
                     // from the clients websocket
-                    webSocket.registerReceivedPacketCallback(shared.PACKET_TYPES.INPUT, function (packet) { return packet.command; }, onInputCallback);
+                    web_socket.registerReceivedPacketCallback(shared.PACKET_TYPES.INPUT, function (packet) { return packet.command; }, onInputCallback);
                 }
 
                 _started = true;

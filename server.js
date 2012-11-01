@@ -31,16 +31,16 @@ var _ = require('underscore')._;
                  * Listen for new connections on web_socket_server and set up listeners for all new clients
                  * Also add all new clients to the list "clients" which will be the basis for creating all players
                  */
-                web_socket_server.on('connection', function (clientWebSocket) {
+                web_socket_server.on('connection', function (client_web_socket) {
 
                     // Increment the next_client_id, that will be used to ID the next client
                     // TODO: Not thread safe?
                     next_client_id += 1;
 
                     // Enhance the websocket with object support
-                    shared.addWebSocketObjectSupport(clientWebSocket);
+                    shared.addWebSocketObjectSupport(client_web_socket);
 
-                    _game_on_game.newConnection(next_client_id, clientWebSocket);
+                    _game_on_game.newConnection(next_client_id, client_web_socket);
                     if (_game_on_game.hasStarted() || _game_on_game.hasMaxClients()) {
                         _running_games.push(_game_on_game);
                         _game_on_game = _createGameOnGame();
@@ -56,9 +56,9 @@ var _ = require('underscore')._;
         _init();
     };
 
-    exports.Game = function (id, minClients, maxClients) {
-        var _max_clients = maxClients,
-            _min_clients = minClients,
+    exports.Game = function (id, min_clients, max_clients) {
+        var _max_clients = max_clients,
+            _min_clients = min_clients,
             _id = id,
             _tick_sender = null,
             _options = null,
@@ -153,7 +153,7 @@ var _ = require('underscore')._;
                 });
             },
 
-            _newConnection = function (id, webSocket) {
+            _newConnection = function (id, web_socket) {
                 console.log("new connection with id " + id);
                 var local_client_id = _clients.length,
                     client = null,
@@ -167,10 +167,10 @@ var _ = require('underscore')._;
                     return null;
                 });
 
-                client = exports.Client(id, local_client_id, webSocket);
+                client = exports.Client(id, local_client_id, web_socket);
                 // Listen to HELLOs from the client
-                hello_handler = webSocket.registerReceivedPacketCallback(shared.PACKET_TYPES.HELLO, null, function (packet) {
-                    webSocket.unregisterReceivedPacketCallback(hello_handler);
+                hello_handler = web_socket.registerReceivedPacketCallback(shared.PACKET_TYPES.HELLO, null, function (packet) {
+                    web_socket.unregisterReceivedPacketCallback(hello_handler);
                     client.gotHello(packet.name);
 
                     _sendLobbyPackets(); // Tell everyone our name!
@@ -189,7 +189,7 @@ var _ = require('underscore')._;
                 });
 
                 _clients.push(client);
-                webSocket.setOnSendErrorCallback(function (message) {
+                web_socket.setOnSendErrorCallback(function (message) {
                     console.log("error when sending to client " + client.getID() + ": " + message +"\n" +
                         "removing player...");
                     _clients.splice(_clients.indexOf(client), 1);
@@ -223,16 +223,16 @@ var _ = require('underscore')._;
         };
     };
 
-    exports.Client = function (id, local_id, webSocket) {
+    exports.Client = function (id, local_id, web_socket) {
         var _id = id,
             _local_id = local_id,
             _color = shared.getColorForID(local_id),
 
-            _web_socket = webSocket,
+            _web_socket = web_socket,
             _hello = false,
             _name = null,
             _got_start = false,
-            _input_receiver = input.WebSocketInputReceiver(webSocket, id);
+            _input_receiver = input.WebSocketInputReceiver(web_socket, id);
 
         return {
             getData : function () {

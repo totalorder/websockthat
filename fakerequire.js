@@ -3,12 +3,12 @@ var require = function (module_name) {
         module_name = module_name.substring(0, module_name.length - 3);
     }
 
-    if (module_name.indexOf("/") != -1) {
+    if (module_name.indexOf("/") !== -1) {
         module_name = module_name.substring(module_name.indexOf("/") + 1, module_name.length);
     }
 
     if (module_name === "underscore") {
-        if (_) {
+        if (this._) {
             return {"_" : _ };
         }
     }
