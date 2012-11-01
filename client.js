@@ -1,3 +1,4 @@
+"use strict";
 
 var shared = require("./shared.js");
 var world = require("./world.js");

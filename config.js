@@ -1,3 +1,5 @@
+"use strict";
+
 (function(exports){
     exports.CONFIG = {
         game_package : 'achtung',

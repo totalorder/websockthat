@@ -1,3 +1,5 @@
+"use strict";
+
 var _ = require('underscore')._;
 
 var renderer = require('./renderer.js');

@@ -1,3 +1,5 @@
+"use strict";
+
 var WebSocketServer = require('ws').Server,
     shared = require('./shared.js'),
     world = require('./world.js'),

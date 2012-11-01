@@ -1,3 +1,5 @@
+"use strict";
+
 var renderer = require('./renderer.js');
 var shared = require('./shared.js');
 var input = require('./input.js');
