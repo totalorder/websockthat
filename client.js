@@ -1,7 +1,7 @@
 "use strict";
 
 var communication = require("./communication.js");
-var shared = require("./shared.js");
+var websocktransport = require("./websocktransport.js");
 var world = require("./world.js");
 var input = require("./input.js");
 var config = require("./config.js");
@@ -36,7 +36,7 @@ var _ = require('underscore')._;
             local_player_settings.name = player_name;
 
             // Add .sendObject() .onobject() and .registerReceivedPacketCallback() to our WebSocket-object
-            shared.addWebSocketObjectSupport(web_socket);
+            websocktransport.addWebSocketObjectSupport(web_socket);
 
             _waitForConnectionOpen(web_socket);
         },
@@ -56,8 +56,8 @@ var _ = require('underscore')._;
 
                 // Set up an InputHandler that will listen for and react to all incoming data that is about the in-game
                 // action
-                var tick_receiver = shared.WebSocketTickReceiver(web_socket),
-                    input_sender = new shared.WebSocketInputSender(web_socket),
+                var tick_receiver = websocktransport.WebSocketTickReceiver(web_socket),
+                    input_sender = new websocktransport.WebSocketInputSender(web_socket),
 
                 // Set up an InputDevice that will listen to the keys pressed by the user and react to them
                 // Passing along specialKeyCommandsCallback that will send a START packet to the server when

@@ -2,7 +2,7 @@
 
 var WebSocketServer = require('ws').Server,
     communication = require("./communication.js"),
-    shared = require('./shared.js'),
+    websocktransport = require('./websocktransport.js'),
     world = require('./world.js'),
     input = require('./input.js'),
     config = require("./config.js"),
@@ -41,7 +41,7 @@ var _ = require('underscore')._;
                     next_client_id += 1;
 
                     // Enhance the websocket with object support
-                    shared.addWebSocketObjectSupport(client_web_socket);
+                    websocktransport.addWebSocketObjectSupport(client_web_socket);
 
                     _game_on_game.newConnection(next_client_id, client_web_socket);
                     if (_game_on_game.hasStarted() || _game_on_game.hasMaxClients()) {
@@ -72,7 +72,7 @@ var _ = require('underscore')._;
 
             init = function () {
                 // Set up an output handler, default options and create a World
-                _tick_sender = shared.WebSocketTickSender();
+                _tick_sender = websocktransport.WebSocketTickSender();
                 _options = game.createDefaultOptions();
 
                 _world = world.World(_tick_sender, null, null, _options);
@@ -229,7 +229,7 @@ var _ = require('underscore')._;
     exports.Client = function (id, local_id, web_socket) {
         var _id = id,
             _local_id = local_id,
-            _color = shared.getColorForID(local_id),
+            _color = exports.getColorForID(local_id),
 
             _web_socket = web_socket,
             _hello = false,
@@ -289,6 +289,19 @@ var _ = require('underscore')._;
             }
         };
     };
+
+    exports.getColorForID = function (id) {
+        var colors = {
+            0 : "orange",
+            1 : "green",
+            2 : "purple",
+            3 : "cyan",
+            4: "red",
+            5: "blue"
+        };
+        return colors[id % _.keys(colors).length];
+    };
+
 })(typeof exports === 'undefined'? this['server']={}: exports);
 
 var server = require('./server.js');

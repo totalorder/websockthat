@@ -1,6 +1,6 @@
 "use strict";
 
-var shared = require("./shared.js");
+var websocktransport = require("./websocktransport.js");
 var world = require("./world.js");
 var input = require("./input.js");
 var config = require("./config.js");
@@ -26,7 +26,7 @@ var game = require("./" + config.CONFIG.game_package + ".js");
 
     // Set up an InputHandler that will listen for and react to all incoming data that is about the in-game
     // action
-    var clientInputHandler = shared.LocalInputHandler();
+    var clientInputHandler = websocktransport.LocalInputHandler();
 
     var gameStarted = false;
 
@@ -36,7 +36,7 @@ var game = require("./" + config.CONFIG.game_package + ".js");
         clientWorld.gameOver();
         gameStarted = false;
     };
-    var localOutputHandler = shared.LocalOutputHandler(clientInputHandler.onTickReceived, onGameOver);
+    var localOutputHandler = websocktransport.LocalOutputHandler(clientInputHandler.onTickReceived, onGameOver);
     var clientWorld = null;
 
     clientWorld = new world.World(clientInputHandler, localOutputHandler, game.createDefaultOptions(), true);

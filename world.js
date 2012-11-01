@@ -3,7 +3,7 @@
 var _ = require('underscore')._;
 
 var renderer = require('./renderer.js');
-var shared = require('./shared.js');
+var websocktransport = require('./websocktransport.js');
 var input = require('./input.js');
 var config = require("./config.js"),
     game = require("./" + config.CONFIG.game_package + ".js");

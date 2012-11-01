@@ -6,3 +6,4 @@ underscore all ugly loops
 document everything
 fix the local game
 Make pong!
+move from fakerequire + nodejs-require to RequireJS + nodejs-RequireJS

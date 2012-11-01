@@ -2,7 +2,7 @@
 var _ = require('underscore')._;
 
 var renderer = require('./renderer.js');
-var shared = require('./shared.js');
+var websocktransport = require('./websocktransport.js');
 var input = require('./input.js');
 
 (function(exports){

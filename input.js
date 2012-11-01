@@ -1,7 +1,7 @@
 "use strict";
 
 var communication = require("./communication.js");
-var shared = require('./shared.js');
+var websocktransport = require('./websocktransport.js');
 
 (function(exports){
 

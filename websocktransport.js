@@ -272,16 +272,5 @@ var communication = require("./communication.js");
         };
     };
 
-    exports.getColorForID = function (id) {
-        var colors = {
-            0 : "orange",
-            1 : "green",
-            2 : "purple",
-            3 : "cyan",
-            4: "red",
-            5: "blue"
-        };
-        return colors[id % _.keys(colors).length];
-    };
-})(typeof exports === 'undefined'? this['shared']={}: exports);
+})(typeof exports === 'undefined'? this['websocktransport']={}: exports);
 
