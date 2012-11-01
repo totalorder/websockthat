@@ -1,3 +1,13 @@
+/**
+ * Game module for the game Achtung,
+ * Implements the GameModule-interface
+ *
+ * Exports:
+ *  AchtungSimulator:  Game engine that implements the Simulator-interface
+ *  createDefaultOptions: Returns the default options for the Game-module
+ *  getSimulatorClass: Returns the AchtungSimulator
+ */
+
 "use strict";
 var _ = require('underscore')._;
 
@@ -6,21 +16,53 @@ var websocktransport = require('./websocktransport.js');
 var input = require('./input.js');
 
 (function(exports){
+    /**
+     * Simulator for the game Achtung
+     * Implements the Simulator-interface
+     *
+     * Can either act as a server, running all simulation steps and sending simulation results through tick_sender,
+     * or act as a client, receiving simulation data from the outside, through receiveExternalUpdate.
+     * As a server, incoming input commands will be received through onInputReceived.
+     * As a client, the simulator will not know about input from the local player, since the input device should
+     * be configured to send all inputs to the server.
+     *
+     * @param tick_sender - An instance of a TickSender that should receive any outgoing simulation results
+     * @param options - the (maybe modified) result of achtung.createDefaultOptions()
+     */
     exports.AchtungSimulator = function (tick_sender, options) {
-        // Set up internal data structures
+
+        // The desired movement speed in pixels/second. This will affect the result of getDesiredTPS() to achieve it.
         var DESIRED_MOVEMENT_SPEED = 100,
+            // Will hold last player to be alive when the game ends - the winner of the round
             _last_alive,
+
+            // A list of all players in the simulation
             _players = null,
+
+            // A list of all players in the simulation that are still alive and should participate in the simulation
             _alive_players = null,
+
+            // A lookup table for fast access to the players by ID for use when receiving input
             _players_map = {},
 
-            populatePlayersMap = function () {
+            /**
+             * Populate the lookup table _players_map with the player object with player.id as key, for fast access
+             * Should be re-run before every simulation start
+             */
+            _populatePlayersMap = function () {
                 _players_map = {};
                 _.each(_alive_players, function (player) {
                     _players_map[player.id] = player;
                 });
             },
 
+            /**
+             * Externally exposed callback that should be used as callback to InputReceiver.setOnCommandCallback
+             * Will apply the input command to the given player
+             *
+             * @param player_id - The player id associated with the given input_command
+             * @param input_command - One of input.COMMANDS
+             */
             onInputReceived = function (player_id, input_command) {
                 _players_map[player_id].setInternalInputCommand(input_command);
             },
@@ -38,18 +80,17 @@ var input = require('./input.js');
                 // steps per second.
                 delta_time *= getDesiredTPS();
 
-                // Set up internal data structures
+                // A list of the input states that will be read from each player to be fed into the simulation for each
+                // player
                 var player_input_states = [],
-                    player,
-                    i,
+
+                    // A list of any collisions, associated with their players and the distance between the colliding bodies
                     collisions = [],
                     game_over = false;
 
-                // This should be dependent on _tickInterval if the game doesn't depend on all ticks
-                // being equally far apart
-
-                // Fetch the input state from all players. This is done at the same time to ensure that all players'
-                // input is sampled at the same time since it can change during the simulation-step
+                // Sample the input state from all players. This is done at the same time to ensure that all players'
+                // input is sampled at the same time since it can change during the simulation-step, keeping
+                // the simulation equal and fair to all players
                 _.each(_alive_players, function (player) {
                     player_input_states.push(player.getInputState());
                 });
@@ -61,9 +102,10 @@ var input = require('./input.js');
 
                 // Check for collisions for all players and how close to the impact spot they are
                 // They are then sorted and killed in the order of closest to impact spot
-
+                // This is not a totally fair comparison in all cases, but it's good enough.
                 _.each(_alive_players, function (player, index) {
-                    var collision_distance = player.getCollision(delta_time, _alive_players);
+                    // Be sure to send in ALL players, not just the alive ones, when checking for collisions
+                    var collision_distance = player.getCollision(delta_time, _players);
                     if (collision_distance !== null) {
                         collisions.push({player: player, collision_distance: collision_distance, player_number : index});
                     }
@@ -74,15 +116,14 @@ var input = require('./input.js');
                     return left.collision_distance - right.collision_distance;
                 });
 
-
                 // Kill off players in the order of closest to impact spot
                 // End the simulation if there is only one player alive, making hen the winner
                 _.each(collisions, function (collision) {
-                    player = collision.player;
+                    var player = collision.player,
+                        players_alive = 0;
                     player.kill();
 
                     // Check if any one is still alive
-                    var players_alive = 0;
                     _.each(_alive_players, function (player) {
                         if (player.isAlive()) {
                             players_alive += 1;
@@ -106,6 +147,9 @@ var input = require('./input.js');
             /**
              * Reset the world state and rendering engine state, getting ready to start a
              * new game
+             *
+             * @param players - A list of AchtungSimulator.Player-objects that should represent all players in the game
+             *                  All players should already be set up and ready to start without any initialization
              */
             start = function(players) {
                 _players = players;
@@ -113,21 +157,45 @@ var input = require('./input.js');
                 _.each(_players, function (player) {
                     _alive_players.push(player);
                 });
-                populatePlayersMap();
+                _populatePlayersMap();
             },
 
+            /**
+             * Do setup work for a player before it's instantiated.
+             * Calculate a random position within further than 10% of the mapsize from any map-edge,
+             * and randomize a direction between 0 and 360 degrees
+             *
+             * @param player_data - An instance of a player_data-object, that will be passed to createPlayer()
+             */
             setUpPlayerData = function (player_data) {
                 player_data.x = options.GAME_WIDTH * 0.1 + Math.random() * options.GAME_WIDTH * 0.8;
                 player_data.y = options.GAME_HEIGHT * 0.1 + Math.random() * options.GAME_HEIGHT * 0.8;
                 player_data.direction = Math.random() * 360;
             },
 
+            /**
+             * Create and return a new Player-object based on a player_data object and a player_settings dictionary
+             * @param player_data - A player_data object that should contain all structures needed to create a Player
+             * @param player_settings - Settings that the player should obey when running the simulation
+             */
             createPlayer = function (player_data, player_settings) {
                 return new Player(player_data.id, player_data.name, player_settings, player_data.x, player_data.y, player_data.direction, player_data.color);
             },
 
+            /**
+             * Do any rendering required for the game itself. Since all rendering is delegated to Player.draw()
+             * we don't need to do anything here
+             *
+             * @param ctx a HTML5-canvas context
+             */
             draw = function (ctx) {},
 
+            /**
+             * Externally exposed callback that should be called by TickReceiver.onTickReceived
+             * Will apply the tick simulation data to the local simulation
+             *
+             * @param tick_packet - a communication.PACKET_TYPES.TICK-packet
+             */
             receiveExternalUpdate = function (tick_packet) {
                 _.each(_players, function (player) {
                     if (tick_packet.players[player.id]) {
@@ -136,12 +204,16 @@ var input = require('./input.js');
                 });
             },
 
-            /**
-             * Line size: 5
-             * Desired movement speed: 10
-             * TPS: desired / line size = 2
-             */
 
+            /**
+             * Return the number of of ticks per second that the game wants to run in
+             * The option parameter ALLOW_TPS_COMPENSATION will tell the World-engine if
+             * it is allowed to lower the TPS if resources are low, and still keep the game speed.
+             * Setting it to false will ensure the simulation will always receive a set delta_time for each tick,
+             * making the game slow down when low on resources
+             *
+             * @returns number
+             */
             getDesiredTPS = function () {
                 // Calculate the desired TPS based on that we want one tick every LINE_SIZE distance traveled
                 // This is to make sure our naive collision detection is can count on that there is at least
@@ -150,39 +222,95 @@ var input = require('./input.js');
                 return DESIRED_MOVEMENT_SPEED / options.LINE_SIZE;
             },
 
+            /**
+             * A Player within the simulation, that holds all data and logic that's important to run players
+             * within the simulation
+             *
+             * @param id - The external (simulator-unique) ID of the player
+             * @param name - The name of the player, reported to opponents
+             * @param settings - A settings-dictionary that should be obeyed when running the simulation
+             * @param x - The horizontal start position of the player
+             * @param y - The vertical start position of the player
+             * @param direction - The direction in degrees the player is moving in
+             * @param color - The html-color of the player
+             */
             Player = function (id, name, settings, x, y, direction, color) {
 
+                // The current horizontal and vertical position of the player
                 var _x = x,
                     _y = y,
+
+                    // The last inpt command that was received from the user controlling this player
                     _last_command = input.COMMANDS.LEFT_RIGHT_UP,
+
+                    // The current direction in degrees the player is travelling
                     _direction = direction,
+
+                    // The trail of the players worm. A list of points, starting at the start x/y of the player
                     _trail = [{x: _x, y: _y}],
+
+                    // Boolean telling if the player is alive or out of the game
                     alive = true,
 
+                    /**
+                     * Returns the current input state of the player
+                     *
+                     * @returns One of input.COMMANDS
+                     */
                     getInputState = function () {
                         return _last_command;
                     },
 
+                    /**
+                     * Run the simulation step for this player
+                     * Turn left, right or not at all, move in that direction and add one point to our trail
+                     *
+                     * @param delta_time - The time in seconds the last tick took
+                     * @param input_state - One of input.COMMANDS
+                     * @param tick_sender - A TickSender-instance
+                     */
                     simulate = function (delta_time, input_state, tick_sender) {
+                        // Turn left or right or not at all depending on the player input
                         if (input_state === input.COMMANDS.LEFT_DOWN) {
                             _direction += settings.TURNING_SPEED * delta_time;
                         } else if (input_state === input.COMMANDS.RIGHT_DOWN) {
                             _direction -= settings.TURNING_SPEED * delta_time;
                         }
 
+                        // Move in our current direction
                         _x += Math.sin(_direction * (Math.PI/180)) * delta_time * settings.MOVEMENT_SPEED;
                         _y += Math.cos(_direction * (Math.PI/180)) * delta_time * settings.MOVEMENT_SPEED;
 
+                        // Add one point to our trail and send the point off through the tick_sender to the other players
                         var trail_point = {x: _x, y: _y};
                         _trail.push(trail_point);
                         tick_sender.setPlayerData(id, trail_point);
                     },
 
+                    /**
+                     * Called by AchtungSimulator.receiveExternalUpdate when it's been fed with tick data from
+                     * TickReceiver.onTickReceived.
+                     * Add the trail point to the local simulation
+                     *
+                     * @param data - Trail point like {x: 1, y: 2}
+                     */
                     receiveExternalUpdate = function (data) {
                         addTrailPoint(data);
                     },
 
+                    /**
+                     * Draw the current player by looping through all trail points and drawing arcs with the
+                     * players color
+                     *
+                     * @param ctx a HTML5-canvas context
+                     */
                     draw = function (ctx) {
+                        /**
+                         * Utility function that draws a line between two points
+                         * Not necessary if the trail points are close enough
+                         * @param last_point
+                         * @param point
+                         */
                         var drawLineBetweenPoints = function (last_point, point) {
                                 if(last_point) {
                                     ctx.beginPath();
@@ -195,6 +323,7 @@ var input = require('./input.js');
 
                             last_point = false;
 
+                        // Draw a filled arc for each trail point in our trail
                         ctx.fillStyle = color;
                         _.each(_trail, function (point) {
                             // To draw lines between the points:
@@ -209,11 +338,31 @@ var input = require('./input.js');
                         });
                     },
 
+                    /**
+                     * Calculate a list of any collisions of the worm head to any other worm parts and return the distance
+                     * between the two closest colliding bodies
+                     * Also check if the head is outside the game area an return it as a collision if detected
+                     *
+                     * WARNING: Very naive collision detection that assumes that there is at least one trail point
+                     * every LINE_SIZE-pixel, making it impossible to slip between trail points. It loops through
+                     * all trail points on the map except the last few from the own player and looks for a
+                     * distance < LINE_SIZE between the head and any other point.
+                     *
+                     * @param delta_time - The time in seconds the last tick took
+                     * @param players - The list of all players in the simulation
+                     * @returns null or number - The distance to the collision if any
+                     */
                     getCollision = function (delta_time, players) {
+                        // A list of the distances between any colliding points
                         var collisions = [],
+
+                            // The distance in number of trail parts from the head that will not touch the head if going
+                            // in a straight line. Used for skipping the current players last N trail parts in the collision
+                            // detection to avoid crashing into ourselves right at the start.
                             _trail_touch_distance = ((settings.LINE_SIZE*2) / (settings.MOVEMENT_SPEED * delta_time)) + 1,
                             that = this;
 
+                        // Check if the player is outside the map
                         if (_x < settings.LINE_SIZE / 2) {
                             return settings.LINE_SIZE / 2 - _x; // Not accurate
                         }
@@ -230,8 +379,15 @@ var input = require('./input.js');
 
                         _.each(players, function (player) {
                             var trail = player.getTrail(),
+
+                                // The number of trail points to look at when collision detecting before stopping. For
+                                // any other player this i trail.length, but for the current player we skip the most
+                                // newly created trail points to avoid crashing into ourselves right at the start. See
+                                // the docstring for _trail_touch_distance
                                 stop_at = player !== that ? trail.length : Math.max(-1, trail.length - _trail_touch_distance);
 
+                            // Loop over the trail points checking the distance between our head and the points,
+                            // pushing any found collisions to the list collisions
                             _.some(trail, function (point, index) {
                                 if (index >= stop_at) {
                                     return true; // Simulate a "break;"
@@ -245,10 +401,13 @@ var input = require('./input.js');
                             });
                         });
 
+                        // Sort the collisions in ascending order
                         collisions.sort(function (left, right) {
                             return left.collision_distance - right.collision_distance;
                         });
 
+                        // Return the length between the two closest colliding bodies or null if no collision
+                        // was detected
                         if (collisions.length > 0) {
                             return collisions[0];
                         } else {
@@ -256,30 +415,62 @@ var input = require('./input.js');
                         }
                     },
 
+                    /**
+                     * Returns a list of all trail points
+                     *
+                     * @returns A list of trail points
+                     */
                     getTrail = function () {
                         return _trail;
                     },
 
+                    /**
+                     * Mark the player killed by setting alive to false
+                     */
                     kill = function () {
                         alive = false;
                         console.log("Player " + id + " " +  name + " died!");
                     },
 
+                    /**
+                     * Get the name of the player
+                     *
+                     * @returns string - The name of the player
+                     */
                     getName = function () {
                         return name;
                     },
 
+                    /**
+                     * Boolean telling if the player is alive or not
+                     *
+                     * @returns boolean
+                     */
                     isAlive = function () {
                         return alive;
                     },
 
+                    /**
+                     * Sets command as the last input command. Called from AchtungSimulator.onInputReceived when
+                     * input is received from the outside world
+                     *
+                     * @param command - One of input.COMMANDS
+                     */
                     setInternalInputCommand = function (command) {
                         _last_command = command;
                     },
 
+                    /**
+                     * Run any initialization code needed before start
+                     */
                     start = function () {
                     },
 
+                    /**
+                     * Add a point to the players trail
+                     *
+                     * @param point - Trail point like {x: 1, y: 2}
+                     */
                     addTrailPoint = function (point) {
                         _trail.push(point);
                     };
