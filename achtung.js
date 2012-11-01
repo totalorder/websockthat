@@ -350,7 +350,7 @@ var input = require('./input.js');
                      *
                      * @param delta_time - The time in seconds the last tick took
                      * @param players - The list of all players in the simulation
-                     * @returns null or number - The distance to the collision if any
+                     * @returns number - The distance to the collision if any or null of not found
                      */
                     getCollision = function (delta_time, players) {
                         // A list of the distances between any colliding points
@@ -410,9 +410,8 @@ var input = require('./input.js');
                         // was detected
                         if (collisions.length > 0) {
                             return collisions[0];
-                        } else {
-                            return null;
                         }
+                        return null;
                     },
 
                     /**
