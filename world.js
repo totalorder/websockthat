@@ -77,6 +77,9 @@ var config = require("./config.js"),
             // Define if we're going to filter the logging
             LOGGING_FILTER = null,
 
+            // Tell the ticker that we want to force a stop
+            _force_stop = false,
+
             // Gather settings needed for rendering
             rendering_settings = {
                 LINE_SIZE : options.LINE_SIZE,
@@ -135,10 +138,14 @@ var config = require("./config.js"),
                 var delta_time = null,
                     result;
 
+                if (_force_stop) {
+                    return true;
+                }
+
                 // Calculate the time between now and the last tick. If TPS compensation is not allowed, we will
                 // report the desired delta time, making the game slow down instead of making fewer simulation steps
                 // Divide by 1000 to get the value in seconds since the intervals are in milliseconds.
-                if (options.ALLOW_TPS_COMPENSATION ) {
+                if (options.ALLOW_TPS_COMPENSATION) {
                     delta_time = _tick_interval / 1000.0;
                 } else {
                     delta_time = _desired_tick_interval / 1000.0;
@@ -258,7 +265,7 @@ var config = require("./config.js"),
                     return;
                 }
 
-                console.log("starting game");
+                console.log("starting world");
 
                 // Set up internal data structures
                 var player_infos = [];
@@ -389,6 +396,14 @@ var config = require("./config.js"),
              */
             setTPSText = function (tps_text) {
                 _tps_text = tps_text;
+            },
+
+            /**
+             * Stop the simulation
+             */
+            stop = function () {
+                _force_stop = true;
+
         };
 
         _init();
@@ -400,7 +415,8 @@ var config = require("./config.js"),
             getTicksPerSecondText:getTicksPerSecondText,
             getTickDurationRatio:getTickDurationRatio,
             getLogData:getLogData,
-            gameOver:gameOver
+            gameOver:gameOver,
+            stop:stop
         };
 
     };

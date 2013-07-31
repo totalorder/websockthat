@@ -7,7 +7,7 @@
  * Exports:
  *  Server: Websocket server that hosts a lobby and games
  *  Game: A game that can keep serving a number of clients
- *  Client: A client that can participage in a Game
+ *  Client: A client that can participate in a Game
  *  getColorForID: Returns the html-color associated with a specific ID
  */
 
@@ -33,70 +33,101 @@ var _ = require('underscore')._;
     exports.Server = function () {
         // The id for the next created game. Incremented each time new game is created
         var next_game_id = 0,
+            _running_games = [],
+            _game_on_game,
+            _web_socket_server,
+            _next_client_id,
+
+        /**
+         * Constructor for the server object
+         * Create a new game and start listening for connections. Create a new game
+         * when the previous one is full.
+         *
+         * @constructor
+         */
+        _init = function () {
+            var address = { host: config.CONFIG.bind_to_address,
+                port: config.CONFIG.bind_to_port };
+                // Create a new WebSocketServer and start listening
+            _web_socket_server = new WebSocketServer(address);
+            _next_client_id = 0;
+
+            // Create a new game setting it as the current "game_on_game"
+            // The game on game is the one new players connecting will be directed to
+            _game_on_game = _createGameOnGame();
+
+            // A list of all games running
+            // Should be cleaned up for dead games once in a while
+            _running_games = [_game_on_game];
+
+            console.log("listening to ", address);
 
             /**
-             * Constructor for the server object
-             * Create a new game and start listening for connections. Create a new game
-             * when the previous one is full.
+             * Listen for new connections on _web_socket_server and set up listeners for all new clients
+             * Also add all new clients to the list "clients" which will be the basis for creating all players
              *
-             * @constructor
+             * @param client_web_socket - A WebSocket connected to a newly connected client
              */
-            _init = function () {
-                var address = { host: config.CONFIG.bind_to_address,
-                    port: config.CONFIG.bind_to_port },
-                    // Create a new WebSocketServer and start listening
-                    web_socket_server = new WebSocketServer(address),
-                    next_client_id = 0,
+            _web_socket_server.on('connection', function (client_web_socket) {
 
-                    // Create a new game setting it as the current "game_on_game"
-                    // The game on game is the one new players connecting will be directed to
-                    _game_on_game = _createGameOnGame(),
+                // Increment the _next_client_id, that will be used to ID the next client
+                _next_client_id += 1;
 
-                    // A list of all games running
-                    // Should be cleaned up for dead games once in a while
-                    _running_games = [];
+                // Enhance the websocket with object support
+                websocktransport.addWebSocketObjectSupport(client_web_socket);
 
-                console.log("listening to ", address);
+                // Tell the current game on game that we have a new player for it
+                _game_on_game.newConnection(_next_client_id, client_web_socket);
 
-                /**
-                 * Listen for new connections on web_socket_server and set up listeners for all new clients
-                 * Also add all new clients to the list "clients" which will be the basis for creating all players
-                 *
-                 * @param client_web_socket - A WebSocket connected to a newly connected client
-                 */
-                web_socket_server.on('connection', function (client_web_socket) {
+                // Create a new game on game if the current one has started or is full
+                // If the game becomes full and someone leaves before it starts, it will never receive any
+                // new players. This could be a potential problem is games are not autostarted when full
+                if (_game_on_game.hasStarted() || _game_on_game.hasMaxClients()) {
+                    _running_games.push(_game_on_game);
+                    _game_on_game = _createGameOnGame();
+                }
+            });
+        },
 
-                    // Increment the next_client_id, that will be used to ID the next client
-                    next_client_id += 1;
+        /**
+         * Remove a game from the _running_games list when all players have disconnected.
+         * Sent as a callback to a Game to let it notify us when it's empty
+         * If the game is the _game_on_game, do nothing.
+         */
+        _deleteGame = function (game) {
+            if (game === _game_on_game) {
+                return;
+            } else {
+                _running_games.splice(_running_games.indexOf(_running_games), 1);
+            }
+        },
 
-                    // Enhance the websocket with object support
-                    websocktransport.addWebSocketObjectSupport(client_web_socket);
+        /**
+         * Create and return a new game for use as a "game on game"
+         *
+         * @returns Game - A game pre-configured with default settings
+         */
+        _createGameOnGame = function () {
+            next_game_id += 1;
+            return new exports.Game(next_game_id, 1, 2, _deleteGame);
+        },
 
-                    // Tell the current game on game that we have a new player for it
-                    _game_on_game.newConnection(next_client_id, client_web_socket);
-
-                    // Create a new game on game if the current one has started or is full
-                    // If the game becomes full and someone leaves before it starts, it will never receive any
-                    // new players. This could be a potential problem is games are not autostarted when full
-                    if (_game_on_game.hasStarted() || _game_on_game.hasMaxClients()) {
-                        _running_games.push(_game_on_game);
-                        _game_on_game = _createGameOnGame();
-                    }
-                });
-            },
-
-            /**
-             * Create and return a new game for use as a "game on game"
-             *
-             * @returns Game - A game pre-configured with default settings
-             */
-            _createGameOnGame = function () {
-                next_game_id += 1;
-                return new exports.Game(next_game_id, 1, 2);
+        _stop = function () {
+            _web_socket_server.close();
+            console.log("server stopped");
         };
 
         // Execute the constructor
         _init();
+
+        return {
+            createGameOnGame : _createGameOnGame,
+            getWebSocketServer : function () { return _web_socket_server; },
+            getGameOnGame : function () { return _game_on_game; },
+            getRunningGames: function () { return _running_games; },
+            getNextGameID : function () { return next_game_id; },
+            stop : _stop
+        };
     };
 
     /**
@@ -106,8 +137,10 @@ var _ = require('underscore')._;
      * @param id - The id of the game
      * @param min_clients - The minimum amount of clients that's needed to start a game
      * @param max_clients - The maximum amount of clients that can be reached before the game is autostarted
+     * @param game_over_callback - A callback that notifies the server when a game has allt it's clients disconnected
+     *                             and is needed no more.
      */
-    exports.Game = function (id, min_clients, max_clients) {
+    exports.Game = function (id, min_clients, max_clients, game_over_callback) {
         var _max_clients = max_clients,
             _min_clients = min_clients,
             _id = id,
@@ -117,6 +150,7 @@ var _ = require('underscore')._;
             _clients = [],
             _is_running = false,
             _has_started = false,
+            _that = this,
 
             init = function () {
                 // Set up an TickSender, default options and create a World
@@ -183,7 +217,7 @@ var _ = require('underscore')._;
                 _is_running = true;
                 _has_started = true;
 
-                console.log("starting game with " + _clients.length + "clients");
+                console.log("starting game with " + _clients.length + " clients");
 
                 // Gather player data from each player
                 var player_datas = [];
@@ -323,6 +357,8 @@ var _ = require('underscore')._;
                  * receives an exception when trying to send to the client. This will be seen as the client has disconnected
                  * So we remove the client from our _clients-list and tell the tick_sender it shouldn't receive any
                  * further updates.
+                 * If the disconnected client is the last one, stop the world and tell the server through game_over_callback
+                 * If one client is left, restart.
                  */
                 web_socket.setOnSendErrorCallback(function (message) {
                     console.log("error when sending to client " + client.getID() + ": " + message +"\n" +
@@ -330,6 +366,14 @@ var _ = require('underscore')._;
                     _clients.splice(_clients.indexOf(client), 1);
                     _tick_sender.removeClient(client.getID());
                     console.log(_clients.length + " clients active");
+                    if (_clients.length === 1) {
+                        _restart();
+                    } else if (_clients.length === 0) {
+                        _world.stop();
+                        _is_running = false;
+                        _has_started = false;
+                        game_over_callback(_that);
+                    }
                 });
 
                 // Tell everyone that someone has joined!
@@ -457,7 +501,7 @@ var _ = require('underscore')._;
 
 })(typeof exports === 'undefined'? this['server']={}: exports);
 
-var server = require('./server.js');
+/*var server = require('./server.js');
 
 // Get the server rollin'
-var s = server.Server();
+var s = server.Server();*/

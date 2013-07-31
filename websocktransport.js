@@ -113,7 +113,9 @@ var communication = require("./communication.js");
             } else {
                 console.log("no data received: ");
                 console.log(message);
-                web_socket.onobject(null);
+                if (web_socket.onobject) {
+                    web_socket.onobject(null);
+                }
             }
         };
 
