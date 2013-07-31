@@ -178,7 +178,7 @@ var input = require('./input.js');
                 if (player_data.test_client) {
                     player_data.x = options.MOVEMENT_SPEED * 4;
                     player_data.y = options.MOVEMENT_SPEED * 4 * (1 + player_data.test_client / 2);
-                    player_data.direction = 0;
+                    player_data.direction = 180;
                 }
             },
 

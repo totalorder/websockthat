@@ -402,8 +402,9 @@ var config = require("./config.js"),
              * Stop the simulation
              */
             stop = function () {
-                _force_stop = true;
-
+                if (_game_started) {
+                    _force_stop = true;
+                }
         };
 
         _init();

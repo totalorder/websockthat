@@ -4,7 +4,7 @@ var assert = require("assert");
 var mocks = require('./mocks.js');
 var communication = require("../communication.js");
 var s;
-suite('server_connect', function () {
+suite('server', function () {
     setup(function () {
         // Get the server rollin'
         var server = require('../server.js');
@@ -15,7 +15,7 @@ suite('server_connect', function () {
         s.stop();
     });
 
-    test('server instantiation', function () {
+    test('instantiates', function () {
         assert.notEqual(s, undefined);
         assert.notEqual(s, null);
         console.log(s);

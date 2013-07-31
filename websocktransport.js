@@ -282,7 +282,7 @@ var communication = require("./communication.js");
             removeClient : function (client_id) {
                 // Splice away the client with the given client_id from the list of client_Datas
                 _.some(client_datas, function (client_data, index) {
-                    if(client_data.id === client_id) {
+                    if (client_data.id === client_id) {
                         client_datas.splice(index, 1);
                         return true; // Simulate a "break;";
                     }

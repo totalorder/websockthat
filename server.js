@@ -151,6 +151,7 @@ var _ = require('underscore')._;
             _is_running = false,
             _has_started = false,
             _that = this,
+            _test = false,
 
             init = function () {
                 // Set up an TickSender, default options and create a World
@@ -159,6 +160,13 @@ var _ = require('underscore')._;
 
                 // Passing a TickSender along to the world all simulation output will go through it out to our clients
                 _world = world.World(_tick_sender, null, null, _options, false);
+            },
+
+            /**
+             * Set the test-mode for this game. If true, any new clients accepted will pass on testing data to the world
+             */
+            _setTestMode = function (test_mode) {
+                _test = test_mode;
             },
 
             /**
@@ -220,13 +228,19 @@ var _ = require('underscore')._;
                 console.log("starting game with " + _clients.length + " clients");
 
                 // Gather player data from each player
-                var player_datas = [];
+                var player_datas = [], client_data;
                 _.each(_clients, function (client) {
                     // Set up the client_data with the InputDevice and InputHandler and
                     client.start();
 
                     // Gather all player_data objects and pass them to the world!
-                    player_datas.push(client.getData());
+                    client_data = client.getData();
+
+                    // Set up the world for test if required
+                    if (_test) {
+                        client_data.test_client = client.getLocalID();
+                    }
+                    player_datas.push(client_data);
                 });
 
                 // Start the game, supplying it with data our player_datas.
@@ -281,6 +295,9 @@ var _ = require('underscore')._;
              */
             _restart = function () {
                 _is_running = false;
+                if (_world.isRunning()) {
+                    _world.stop();
+                }
                 _.each(_clients, function (client) {
                     _listenForStart(client);
                 });
@@ -393,6 +410,8 @@ var _ = require('underscore')._;
             newConnection: _newConnection,
 
             restart: _restart,
+
+            setTestMode: _setTestMode,
 
             isRunning : function () {
                 return _is_running;
