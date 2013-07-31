@@ -412,11 +412,12 @@ var config = require("./config.js"),
             clear : clear,
             startGame : startGame,
             log : log,
-            getTicksPerSecondText:getTicksPerSecondText,
-            getTickDurationRatio:getTickDurationRatio,
-            getLogData:getLogData,
-            gameOver:gameOver,
-            stop:stop
+            getTicksPerSecondText: getTicksPerSecondText,
+            getTickDurationRatio: getTickDurationRatio,
+            getLogData: getLogData,
+            gameOver: gameOver,
+            stop: stop,
+            isRunning: function () { return _game_started; }
         };
 
     };

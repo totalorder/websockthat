@@ -22,4 +22,13 @@ var websocktransport = require('../websocktransport.js');
         };
         return _web_socket;
     };
+
+    exports.WebSocketInputReceiver = function () {
+        return {
+            start : function () {
+            },
+            setOnCommandCallback : function (callback) {
+            }
+        };
+    };
 })(typeof exports === 'undefined'? this['mocks']={}: exports);

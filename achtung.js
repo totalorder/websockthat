@@ -164,6 +164,8 @@ var input = require('./input.js');
              * Do setup work for a player before it's instantiated.
              * Calculate a random position within further than 10% of the mapsize from any map-edge,
              * and randomize a direction between 0 and 360 degrees
+             * if player_data.test_client is set, we're running a test and applying start positions that will
+             * end the game quickly
              *
              * @param player_data - An instance of a player_data-object, that will be passed to createPlayer()
              */
@@ -171,6 +173,13 @@ var input = require('./input.js');
                 player_data.x = options.GAME_WIDTH * 0.1 + Math.random() * options.GAME_WIDTH * 0.8;
                 player_data.y = options.GAME_HEIGHT * 0.1 + Math.random() * options.GAME_HEIGHT * 0.8;
                 player_data.direction = Math.random() * 360;
+
+                // Set test positions that will end the game quickly if we're running a test
+                if (player_data.test_client) {
+                    player_data.x = options.MOVEMENT_SPEED * 4;
+                    player_data.y = options.MOVEMENT_SPEED * 4 * (1 + player_data.test_client / 2);
+                    player_data.direction = 0;
+                }
             },
 
             /**
