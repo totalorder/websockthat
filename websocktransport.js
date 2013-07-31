@@ -32,6 +32,9 @@ var communication = require("./communication.js");
      * @param web_socket - A WebSocket instance
      */
     exports.addWebSocketObjectSupport = function (web_socket) {
+        if (web_socket.object_support) {
+            return;
+        }
         // The callback to be called if a web_socket.send() throws an exception
         var onSendErrorCallback = null,
 
@@ -187,6 +190,8 @@ var communication = require("./communication.js");
                 throw "handler with ID " + handler_id + " not registered!";
             }
         };
+        // Mark the socket as object supported
+        web_socket.object_support = true;
 
 
     };
