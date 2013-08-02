@@ -3,8 +3,9 @@
 var assert = require("assert");
 var mocks = require('./mocks.js');
 var communication = require("../communication.js");
-var s;
+
 suite('server', function () {
+    var s;
     setup(function () {
         // Get the server rollin'
         var server = require('../server.js');

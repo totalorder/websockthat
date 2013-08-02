@@ -37,6 +37,8 @@ var _ = require('underscore')._;
             _game_on_game,
             _web_socket_server,
             _next_client_id,
+            _games_cleaned_up = 0,
+            _cleaned_up_games_played = 0,
 
         /**
          * Constructor for the server object
@@ -98,8 +100,21 @@ var _ = require('underscore')._;
             if (game === _game_on_game) {
                 return;
             } else {
+                _games_cleaned_up += 1;
+                _cleaned_up_games_played += game.getGamesPlayed();
                 _running_games.splice(_running_games.indexOf(_running_games), 1);
             }
+        },
+
+        /**
+         * Get the total number of games played on this server. The current _running_games plus cleaned up runs
+         */
+        _getTotalGamesPlayed = function () {
+            var total = _cleaned_up_games_played;
+            _.each(_running_games, function (game) {
+                total += game.getGamesPlayed();
+            });
+            return total;
         },
 
         /**
@@ -126,6 +141,8 @@ var _ = require('underscore')._;
             getGameOnGame : function () { return _game_on_game; },
             getRunningGames: function () { return _running_games; },
             getNextGameID : function () { return next_game_id; },
+            getCleanedUpGames : function () { return _games_cleaned_up; },
+            getTotalGamesPlayed : _getTotalGamesPlayed,
             stop : _stop
         };
     };
@@ -150,8 +167,8 @@ var _ = require('underscore')._;
             _clients = [],
             _is_running = false,
             _has_started = false,
-            _that = this,
             _test = false,
+            _games_played = 0,
 
             init = function () {
                 // Set up an TickSender, default options and create a World
@@ -294,6 +311,7 @@ var _ = require('underscore')._;
              * Start listening for START-messages from all clients
              */
             _restart = function () {
+                _games_played += 1;
                 _is_running = false;
                 if (_world.isRunning()) {
                     _world.stop();
@@ -378,20 +396,23 @@ var _ = require('underscore')._;
                  * If one client is left, restart.
                  */
                 web_socket.setOnSendErrorCallback(function (message) {
-                    console.log("error when sending to client " + client.getID() + ": " + message +"\n" +
-                        "removing player...");
-                    _clients.splice(_clients.indexOf(client), 1);
-                    _tick_sender.removeClient(client.getID());
-                    console.log(_clients.length + " clients active");
-                    if (_clients.length === 1) {
-                        _restart();
-                    } else if (_clients.length === 0) {
-                        _world.stop();
-                        _is_running = false;
-                        _has_started = false;
-                        game_over_callback(_that);
+                    var that = this;
+                    return function () {
+                        console.log("error when sending to client " + client.getID() + ": " + message +"\n" +
+                            "removing player...");
+                        _clients.splice(_clients.indexOf(client), 1);
+                        _tick_sender.removeClient(client.getID());
+                        console.log(_clients.length + " clients active");
+                        if (_clients.length === 1) {
+                            _restart();
+                        } else if (_clients.length === 0) {
+                            _world.stop();
+                            _is_running = false;
+                            _has_started = false;
+                            game_over_callback(that);
+                        }
                     }
-                });
+                }.call(this));
 
                 // Tell everyone that someone has joined!
                 _sendLobbyPackets();
@@ -399,6 +420,8 @@ var _ = require('underscore')._;
 
         // Execute the constructor
         init();
+
+
 
         return {
             getNumberOfClients : function () {
@@ -419,7 +442,12 @@ var _ = require('underscore')._;
 
             hasStarted : function () {
                 return _has_started;
-            }
+            },
+
+            getGamesPlayed : function () {
+                return _games_played;
+            },
+            that : _that
         };
     };
 

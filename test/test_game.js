@@ -4,14 +4,12 @@ var assert = require("assert");
 var mocks = require('./mocks.js');
 var server = require('../server.js');
 var communication = require("../communication.js");
-var g, c1, c2, game_over_callback_called;
+
 suite('game', function () {
+    var g, c1, c2, game_over_callback_called;
     setup(function () {
-        // Get the server rollin'
-        /*var server = require('../server.js');
-        s = server.Server();*/
         game_over_callback_called = false;
-        g = server.Game(0, 1, 2, function (game) {
+        g = new server.Game(0, 1, 2, function () {
             game_over_callback_called = true;
         });
         c1 = mocks.WebSocket();

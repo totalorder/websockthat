@@ -520,8 +520,8 @@ var input = require('./input.js');
      * The actual game speed is controlled by DESIRED_MOVEMENT_SPEED by affecting the result of getDesiredTPS()
      */
     exports.createDefaultOptions = function () {
-        var LINE_SIZE = 3;
-        return {
+        var LINE_SIZE = 3,
+        options = {
             ALLOW_TPS_COMPENSATION : false,
             TURNING_SPEED : 5,
             MOVEMENT_SPEED : LINE_SIZE, // See function docstring
@@ -529,10 +529,22 @@ var input = require('./input.js');
             GAME_WIDTH : 800,
             GAME_HEIGHT : 800
         };
+
+        if (_test_options) {
+            options.GAME_WIDTH = 30;
+            options.GAME_HEIGHT = 30;
+        }
+
+        return options;
     };
 
     exports.getSimulatorClass = function () {
         return exports.AchtungSimulator;
     };
+
+    var _test_options = false;
+    exports.setTestOptions = function (test_options) {
+        _test_options = test_options;
+    }
 
 })(typeof exports === 'undefined'? this['achtung']={}: exports);
