@@ -3,6 +3,7 @@
 (function(exports){
     exports.CONFIG = {
         game_package : 'achtung',
+        start_countdown : 3,
         bind_to_address : '127.0.0.1',
         bind_to_port : 2323,
         connect_to_address : '127.0.0.1',

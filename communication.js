@@ -26,7 +26,7 @@ var _ = require('underscore')._;
         return packet;
     };
 
-    exports.createLobbyStatePacket = function (min_players, max_players, connected_players, players_ready, player_infos) {
+    exports.createLobbyStatePacket = function (min_players, max_players, connected_players, players_ready, player_infos, prepare_for_start) {
         var packet = exports.createPacket();
         packet.type = exports.PACKET_TYPES.LOBBY_STATE;
         packet.min_players = max_players;
@@ -34,6 +34,7 @@ var _ = require('underscore')._;
         packet.connected_players = connected_players;
         packet.players_ready = players_ready;
         packet.player_infos = player_infos;
+        packet.prepare_for_start = prepare_for_start;
         return packet;
     };
 

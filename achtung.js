@@ -526,8 +526,8 @@ var input = require('./input.js');
             TURNING_SPEED : 5,
             MOVEMENT_SPEED : LINE_SIZE, // See function docstring
             LINE_SIZE : LINE_SIZE,
-            GAME_WIDTH : 800,
-            GAME_HEIGHT : 800
+            GAME_WIDTH : 600,
+            GAME_HEIGHT : 600
         };
 
         if (_test_options) {

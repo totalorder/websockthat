@@ -203,15 +203,17 @@ var _ = require('underscore')._;
              * Create a lobby state packet containing information about all players connected to the game
              * Including player id, name, ready-state and color
              *
+             * @param prepare_for_start - Tell the client that the game is about to start, to let it show a countdown
+             * or similar.
              * @returns communication.PACKET_TYPES.LOBBY_STATE
              */
-            _createLobbyStatePacket = function () {
+            _createLobbyStatePacket = function (prepare_for_start) {
                 var player_infos = [];
                 _.each(_clients, function (client) {
                     player_infos.push({id: client.getID(), name : client.getName(), is_ready : client.isReady(), 'color': client.getColor()});
                 });
 
-                return communication.createLobbyStatePacket(_min_clients, _max_clients, _clients.length, _getNumberOfClientsReady(), player_infos);
+                return communication.createLobbyStatePacket(_min_clients, _max_clients, _clients.length, _getNumberOfClientsReady(), player_infos, prepare_for_start);
             },
 
             /**
@@ -228,8 +230,8 @@ var _ = require('underscore')._;
             /**
              * Send lobby packets to all clients
              */
-            _sendLobbyPackets = function () {
-                _sendPacketToAllClients(_createLobbyStatePacket());
+            _sendLobbyPackets = function (prepare_for_start) {
+                _sendPacketToAllClients(_createLobbyStatePacket(prepare_for_start));
             },
 
             /**
@@ -237,35 +239,44 @@ var _ = require('underscore')._;
              * Give _restart() as the _restartCallback to the world so it will be called when it's safe to restart
              */
             _start = function () {
-                console.log("starting game " + _id);
-                // Set the state of the game to running
-                _is_running = true;
-                _has_started = true;
+                _sendLobbyPackets(config.CONFIG.start_countdown);
+                var _doStart = function () {
+                    console.log("starting game " + _id);
+                    // Set the state of the game to running
+                    _is_running = true;
+                    _has_started = true;
 
-                console.log("starting game with " + _clients.length + " clients");
+                    console.log("starting game with " + _clients.length + " clients");
 
-                // Gather player data from each player
-                var player_datas = [], client_data;
-                _.each(_clients, function (client) {
-                    // Set up the client_data with the InputDevice and InputHandler and
-                    client.start();
+                    // Gather player data from each player
+                    var player_datas = [], client_data;
+                    _.each(_clients, function (client) {
+                        // Set up the client_data with the InputDevice and InputHandler and
+                        client.start();
 
-                    // Gather all player_data objects and pass them to the world!
-                    client_data = client.getData();
+                        // Gather all player_data objects and pass them to the world!
+                        client_data = client.getData();
 
-                    // Set up the world for test if required
-                    if (_test) {
-                        client_data.test_client = client.getLocalID();
-                    }
-                    player_datas.push(client_data);
-                });
+                        // Set up the world for test if required
+                        if (_test) {
+                            client_data.test_client = client.getLocalID();
+                        }
+                        player_datas.push(client_data);
+                    });
 
-                // Start the game, supplying it with data our player_datas.
-                // Define a _restartCallback for the world to execute when the game ends that
-                // will set all clients to .start = false and set gameRunning to false.
-                _world.startGame(player_datas, function () {
-                            _restart();
-                        });
+                    // Start the game, supplying it with data our player_datas.
+                    // Define a _restartCallback for the world to execute when the game ends that
+                    // will set all clients to .start = false and set gameRunning to false.
+                    _world.startGame(player_datas, function () {
+                        _restart();
+                    });
+                };
+
+                if (config.CONFIG.start_countdown > 0) {
+                    setTimeout(_doStart, config.CONFIG.start_countdown * 1000);
+                } else {
+                    _doStart();
+                }
             },
 
             /**
@@ -300,6 +311,8 @@ var _ = require('underscore')._;
                     // Tell the client-object we received a start packet from it's socket
                     client.gotStart();
 
+                    _sendLobbyPackets();
+
                     // Start the game if >= _min_clients have sent a START
                     if(_clients.length >= _min_clients && _getNumberOfClientsReady() === _clients.length ) {
                         _start();
@@ -311,6 +324,7 @@ var _ = require('underscore')._;
              * Start listening for START-messages from all clients
              */
             _restart = function () {
+                _sendLobbyPackets();
                 _games_played += 1;
                 _is_running = false;
                 if (_world.isRunning()) {
@@ -374,6 +388,9 @@ var _ = require('underscore')._;
 
                     // If the game is maxed and all clients are set up, start the game!
                     if (_hasMaxClients() && _isAllClientsSetUp()) {
+                        _.each(_clients, function (client) {
+                            client.gotStart();
+                        });
                         _start();
                         return;
                     }

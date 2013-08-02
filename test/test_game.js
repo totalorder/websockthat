@@ -4,10 +4,14 @@ var assert = require("assert");
 var mocks = require('./mocks.js');
 var server = require('../server.js');
 var communication = require("../communication.js");
+var config = require("../config.js");
 
 suite('game', function () {
-    var g, c1, c2, game_over_callback_called;
+    var osc, g, c1, c2, game_over_callback_called;
     setup(function () {
+        osc = config.CONFIG.start_countdown;
+        config.CONFIG.start_countdown = 0;
+
         game_over_callback_called = false;
         g = new server.Game(0, 1, 2, function () {
             game_over_callback_called = true;
@@ -17,6 +21,7 @@ suite('game', function () {
     });
 
     teardown(function () {
+        config.CONFIG.start_countdown = osc;
     });
 
     test('start', function () {

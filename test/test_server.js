@@ -3,10 +3,14 @@
 var assert = require("assert");
 var mocks = require('./mocks.js');
 var communication = require("../communication.js");
+var config = require("../config.js");
 
 suite('server', function () {
-    var s;
+    var s, osc;
     setup(function () {
+        osc = config.CONFIG.start_countdown;
+        config.CONFIG.start_countdown = 0;
+
         // Get the server rollin'
         var server = require('../server.js');
         s = server.Server();
@@ -14,6 +18,7 @@ suite('server', function () {
 
     teardown(function () {
         s.stop();
+        config.CONFIG.start_countdown = osc;
     });
 
     test('instantiates', function () {

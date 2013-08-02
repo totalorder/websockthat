@@ -5,19 +5,20 @@ var websocktransport = require("./websocktransport.js");
 var world = require("./world.js");
 var input = require("./input.js");
 var config = require("./config.js");
+var ui = require("./ui.js");
 
 var _ = require('underscore')._;
 
 
 (function () { // Don't pollute the global namespace
     var local_player_settings = null,
-        lobby_ul = document.getElementById("lobby"),
         client_world = null,
+        _ui = new ui.UI(".game-area", ".stats-box", ".toast", ".lobby"),
 
         _init = function () {
             // Create a new WebSocket client
             var web_socket = new window.WebSocket('ws://' + config.CONFIG.connect_to_address + ':' + config.CONFIG.connect_to_port + '/'),
-                player_name = window.location.hash;
+                player_name = window.location.search.split("?screen_name=")[1];
                 // Set up settings for the local player
                 local_player_settings = {
                     name :  null,
@@ -27,9 +28,9 @@ var _ = require('underscore')._;
                         start : 32}
             };
 
-            if (player_name) {
-                player_name = player_name.substring(1, player_name.length);
-            } else {
+            _ui.init();
+
+            if(!player_name) {
                 player_name = "Anynomous";
             }
 
@@ -51,6 +52,8 @@ var _ = require('underscore')._;
         _waitForConnectionOpen = function (web_socket) {
             console.log("waiting for connection open");
             web_socket.onopen = function() {
+                _ui.createToast("Waiting for other players...");
+
                 // Send a HELLO to the server, telling it our name and that we're interested in chatting with it
                 web_socket.sendObject(communication.createHelloPacket(local_player_settings.name));
 
@@ -103,6 +106,8 @@ var _ = require('underscore')._;
                     }
                 });
 
+                _ui.hideToast();
+
                 // Start the game, giving it a list of player_data-objects
                 client_world.startGame(packet.players);
                 console.log("started!");
@@ -114,31 +119,34 @@ var _ = require('underscore')._;
             web_socket.registerReceivedPacketCallback(communication.PACKET_TYPES.GAME_OVER, null, function (packet) {
                 console.log("GAME OVER!");
                 client_world.gameOver();
+                _ui.createToast("Game over! Press space to play again...");
             });
         },
 
         _registerForLobbyStatePackets = function (web_socket) {
             // Register for incoming pakcets of the type LOBBY_STATE
             web_socket.registerReceivedPacketCallback(communication.PACKET_TYPES.LOBBY_STATE, null, function (packet) {
-                while (lobby_ul.hasChildNodes()) {
-                    lobby_ul.removeChild(lobby_ul.lastChild);
-                }
+                _ui.clearStatsBox();
 
                 var info = document.createElement("li");
-                info.innerHTML = packet.connected_players + "/" + packet.max_players + " connected<br />" +
+                info.innerHTML = packet.connected_players + "/" + packet.max_players + " connected, " +
                     packet.players_ready + "/" + packet.min_players + " ready";
-                lobby_ul.appendChild(info);
+                _ui.addStatsBoxLine(info);
                 _.each(packet.player_infos, function (player_info) {
                     var player_info_li = document.createElement("li");
-                    player_info_li.innerHTML = (player_info.name || "Anonymous") + ": " + (player_info.ready ? "Ready" : "Not ready");
+                    player_info_li.innerHTML = (player_info.name || "Anonymous") + ": " + (player_info.is_ready ? "Ready" : "Not ready");
                     if (player_info.color !== null) {
                         player_info_li.setAttribute('style', "color: " + player_info.color + ";");
                     }
-                    lobby_ul.appendChild(player_info_li);
+                    _ui.addStatsBoxLine(player_info_li);
                 });
+
+                if (packet.prepare_for_start) {
+                    _ui.startToastCountdown(packet.prepare_for_start);
+                }
             });
         };
 
-     _init();
+    window.onload = _init;
 })();
 

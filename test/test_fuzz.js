@@ -11,9 +11,12 @@ var server = require("../server.js");
 
 
 suite('fuzz', function () {
-    var s, game = require("../" + config.CONFIG.game_package + ".js");
+    var osc, s, game = require("../" + config.CONFIG.game_package + ".js");
 
     setup(function () {
+        osc = config.CONFIG.start_countdown;
+        config.CONFIG.start_countdown = 0;
+
         game.setTestOptions(true);
         // Get the server rollin'
         var server = require('../server.js');
@@ -23,6 +26,7 @@ suite('fuzz', function () {
     teardown(function () {
         s.stop();
         game.setTestOptions(false);
+        config.CONFIG.start_countdown = osc;
     });
 
     test('long', function (done) {
