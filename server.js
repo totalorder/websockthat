@@ -446,8 +446,7 @@ var _ = require('underscore')._;
 
             getGamesPlayed : function () {
                 return _games_played;
-            },
-            that : _that
+            }
         };
     };
 
