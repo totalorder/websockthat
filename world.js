@@ -259,8 +259,9 @@ var config = require("./config.js"),
              *
              * @param _player_datas - A list of player_data objects representing each player in the game
              * @param _restartCallback - The callback to notify when the game ends
+             * @param _updateScoresCallback - The callback to notify when the score have changed
              */
-            startGame = function (_player_datas, _restartCallback) {
+            startGame = function (_player_datas, _restartCallback, _updateScoresCallback) {
                 if (_game_started) {
                     return;
                 }
@@ -332,7 +333,7 @@ var config = require("./config.js"),
                 });
 
                 // Get the simulator ready and let it wait for us to call simulator.simulate()
-                simulator.start(_players);
+                simulator.start(_players, _updateScoresCallback);
 
                 // Start everything!
                 _rendering_engine.start();

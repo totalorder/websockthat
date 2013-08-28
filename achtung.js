@@ -36,6 +36,9 @@ var input = require('./input.js');
             // Will hold last player to be alive when the game ends - the winner of the round
             _last_alive,
 
+            // The callback to be called with the new scores every time the score changes
+            _updateScoresCallback = null,
+
             // A list of all players in the simulation
             _players = null,
 
@@ -65,6 +68,17 @@ var input = require('./input.js');
              */
             onInputReceived = function (player_id, input_command) {
                 _players_map[player_id].setInternalInputCommand(input_command);
+            },
+
+            /**
+             * Return a map of all player scores based on ID
+             */
+            getPlayerScores = function () {
+                var player_scores = {};
+                _.each(_players, function (player) {
+                    player_scores[player.id] = player.getScore();
+                });
+                return player_scores;
             },
 
             /**
@@ -135,11 +149,21 @@ var input = require('./input.js');
                     // Remove the player from the simulation
                     _alive_players.splice(collision.player_number, 1);
 
+                    // Increment the score of all alive players when someone dies
+                    _.each(_alive_players, function (player) {
+                        player.incrementScore();
+                    });
+
                     // End the simulation of one or less players are alive - GAME OVER
                     if (players_alive <= 1) {
                         game_over = true;
                     }
                 });
+
+                // Notify the world that the scores have changed if there were any collisions
+                if (_updateScoresCallback && collisions.length > 0) {
+                    _updateScoresCallback(getPlayerScores());
+                }
 
                 return game_over;
             },
@@ -150,9 +174,11 @@ var input = require('./input.js');
              *
              * @param players - A list of AchtungSimulator.Player-objects that should represent all players in the game
              *                  All players should already be set up and ready to start without any initialization
+             * @param updateScoresCallback - Callback to be called with the new scores every time the score changes
              */
-            start = function(players) {
+            start = function(players, updateScoresCallback) {
                 _players = players;
+                _updateScoresCallback = updateScoresCallback;
                 _alive_players = [];
                 _.each(_players, function (player) {
                     _alive_players.push(player);
@@ -249,6 +275,9 @@ var input = require('./input.js');
                 var _x = x,
                     _y = y,
 
+                    // The score for this player during the match
+                    _score = 0,
+
                     // The last inpt command that was received from the user controlling this player
                     _last_command = input.COMMANDS.LEFT_RIGHT_UP,
 
@@ -268,6 +297,20 @@ var input = require('./input.js');
                      */
                     getInputState = function () {
                         return _last_command;
+                    },
+
+                    /**
+                     * Increment the player score by one
+                     */
+                    incrementScore = function () {
+                        _score += 1;
+                    },
+
+                    /**
+                     * Get the current score
+                     */
+                    getScore = function () {
+                        return _score;
                     },
 
                     /**
@@ -497,7 +540,9 @@ var input = require('./input.js');
                     color : color,
                     isAlive : isAlive,
                     setInternalInputCommand : setInternalInputCommand,
-                    receiveExternalUpdate : receiveExternalUpdate
+                    receiveExternalUpdate : receiveExternalUpdate,
+                    incrementScore : incrementScore,
+                    getScore : getScore
                 };
             };
 

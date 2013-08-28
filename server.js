@@ -210,7 +210,7 @@ var _ = require('underscore')._;
             _createLobbyStatePacket = function (prepare_for_start) {
                 var player_infos = [];
                 _.each(_clients, function (client) {
-                    player_infos.push({id: client.getID(), name : client.getName(), is_ready : client.isReady(), 'color': client.getColor()});
+                    player_infos.push({id: client.getID(), name : client.getName(), is_ready : client.isReady(), 'color': client.getColor(), score : client.getTotalScore()});
                 });
 
                 return communication.createLobbyStatePacket(_min_clients, _max_clients, _clients.length, _getNumberOfClientsReady(), player_infos, prepare_for_start);
@@ -267,8 +267,21 @@ var _ = require('underscore')._;
                     // Start the game, supplying it with data our player_datas.
                     // Define a _restartCallback for the world to execute when the game ends that
                     // will set all clients to .start = false and set gameRunning to false.
-                    _world.startGame(player_datas, function () {
-                        _restart();
+                    // Define a _updateScoresCallback for the world to execute every time the score changes
+                    _world.startGame(player_datas,
+                        function () { // _restartCallback
+                            _restart();
+                        },
+                        function (scores) { // _updateScoresCallback
+                        _.each(_clients, function (client) {
+                            if (scores[client.getID()] === undefined) {
+                                throw "score for client " + client.getID() + " not found!";
+                            }
+                            client.setCurrentScore(scores[client.getID()]);
+                        });
+                        // TODO: If this is the last player, _restart() will also trigger a
+                        // _sendLobbyPackets() moments later. Not good.
+                        _sendLobbyPackets();
                     });
                 };
 
@@ -479,6 +492,12 @@ var _ = require('underscore')._;
         var _id = id,
             _local_id = local_id,
 
+            // The score gathered during this match
+            _current_match_score = 0,
+
+            // Score gathered during previous matches
+            _previous_matches_score = 0,
+
             // Get a color for the client based on it's local_id
             _color = exports.getColorForID(local_id),
 
@@ -497,6 +516,14 @@ var _ = require('underscore')._;
 
             getID : function () {
                 return _id;
+            },
+
+            setCurrentScore : function (score) {
+                _current_match_score = score
+            },
+
+            getTotalScore : function () {
+                return _previous_matches_score + _current_match_score;
             },
 
             getLocalID : function () {
@@ -533,6 +560,10 @@ var _ = require('underscore')._;
             },
 
             start : function () {
+                // Gather the score from the previous match and reset the current score
+                _previous_matches_score += _current_match_score;
+                _current_match_score = 0;
+
                 _input_receiver.start();
                 _got_start = false;
             },

@@ -133,10 +133,16 @@ var _ = require('underscore')._;
                     packet.players_ready + "/" + packet.min_players + " ready";
                 _ui.addStatsBoxLine(info);
                 _.each(packet.player_infos, function (player_info) {
-                    var player_info_li = document.createElement("li");
-                    player_info_li.innerHTML = (player_info.name || "Anonymous") + ": " + (player_info.is_ready ? "Ready" : "Not ready");
+                    var player_info_li = document.createElement("li"),
+                        player_score_span = document.createElement("span"),
+                        player_state_span = document.createElement("span");
+                    player_info_li.appendChild(player_score_span);
+                    player_info_li.appendChild(player_state_span);
+                    player_score_span.innerHTML = "<b>" + (player_info.name || "Anonymous") + ": " + player_info.score + "</b> ";
+                    player_state_span.innerHTML = player_info.is_ready ? "Ready" : "Not ready";
+                    player_state_span.setAttribute('style', "color: gray; font-style: italic;");
                     if (player_info.color !== null) {
-                        player_info_li.setAttribute('style', "color: " + player_info.color + ";");
+                        player_score_span.setAttribute('style', "color: " + player_info.color + ";");
                     }
                     _ui.addStatsBoxLine(player_info_li);
                 });
