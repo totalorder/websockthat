@@ -11,6 +11,8 @@ suite('game', function () {
     setup(function () {
         osc = config.CONFIG.start_countdown;
         config.CONFIG.start_countdown = 0;
+        config.CONFIG.bind_to_port = 9999;
+        config.CONFIG.connect_to_port = 9999;
 
         game_over_callback_called = false;
         g = new server.Game(0, 1, 2, function () {
