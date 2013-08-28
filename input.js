@@ -50,6 +50,14 @@ var websocktransport = require('./websocktransport.js');
                 return null;
             },
 
+        /*
+             * Returns true if key code is a scrolling key, like left/right/up/down or space.
+             * TODO: Kind of lame way to disable scrolling, should be improved
+             */
+            isScrollingKey = function (key_code) {
+                return (key_code >= 37 && key_code <= 40) || key_code === 32;
+            },
+
             /*
              * Get the COMMAND that represents keyCode among the commands that doesn't control the player
              * @param keyCode - The integer number representing a keyboard key
@@ -84,6 +92,10 @@ var websocktransport = require('./websocktransport.js');
                         specialKeyCommandsCallback(issued_command);
                     }
                 }
+
+                if (isScrollingKey(evt.keyCode)) {
+                    evt.preventDefault();
+                }
             },
 
             /*
@@ -98,8 +110,9 @@ var websocktransport = require('./websocktransport.js');
                         _onCommandCallback(_player_id, exports.COMMANDS.LEFT_RIGHT_UP);
                     }
                 }
-
-
+                if (isScrollingKey(evt.key_code)) {
+                    evt.preventDefault();
+                }
         };
 
         /* Hacked together mobile phone tilt-support
