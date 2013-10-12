@@ -278,6 +278,9 @@ var input = require('./input.js');
                     // The score for this player during the match
                     _score = 0,
 
+                    // The size of the current hole. Will be minus if we're not currently creating a hole.
+                    _hole_size = 999,
+
                     // The last inpt command that was received from the user controlling this player
                     _last_command = input.COMMANDS.LEFT_RIGHT_UP,
 
@@ -333,10 +336,20 @@ var input = require('./input.js');
                         _x += Math.sin(_direction * (Math.PI/180)) * delta_time * settings.MOVEMENT_SPEED;
                         _y += Math.cos(_direction * (Math.PI/180)) * delta_time * settings.MOVEMENT_SPEED;
 
-                        // Add one point to our trail and send the point off through the tick_sender to the other players
-                        var trail_point = {x: _x, y: _y};
-                        _trail.push(trail_point);
-                        tick_sender.setPlayerData(id, trail_point);
+                        // Increase the measured size of the hole and reset it to a minus value
+                        // each time it goes over a threshold
+                        _hole_size += settings.MOVEMENT_SPEED * delta_time;
+                        if (_hole_size >= 18) {
+                            _hole_size = -Math.random() * 280 - 140;
+                        }
+
+                        // Only add a trail if our hole size if negative
+                        if (_hole_size < 0) {
+                            // Add one point to our trail and send the point off through the tick_sender to the other players
+                            var trail_point = {x: _x, y: _y};
+                            _trail.push(trail_point);
+                            tick_sender.setPlayerData(id, trail_point);
+                        }
                     },
 
                     /**
