@@ -72,6 +72,24 @@ var _ = require('underscore')._;
                         }
                 });
 
+                // Simulate keypresses when getting input from touch
+                // Expects click to be -1, 0 or 1 for left, release, right
+                // Will interpret any touch as "start"-key
+                _ui.setClickCallback(function (click) {
+                    if (click === 0) {
+                        input_device.doKeyUp({preventDefault: function(){}, keyCode: local_player_settings.keys.left});
+                        input_device.doKeyUp({preventDefault: function(){}, keyCode: local_player_settings.keys.right});
+                    } else if (click < 0) {
+                        input_device.doKeyUp({preventDefault: function(){}, keyCode: local_player_settings.keys.right});
+                        input_device.doKeyDown({preventDefault: function(){}, keyCode: local_player_settings.keys.left});
+                    } else {
+                        input_device.doKeyUp({preventDefault: function(){}, keyCode: local_player_settings.keys.left});
+                        input_device.doKeyDown({preventDefault: function(){}, keyCode: local_player_settings.keys.right});
+                    }
+                    input_device.doKeyDown({preventDefault: function(){}, keyCode: local_player_settings.keys.start});
+                    input_device.doKeyUp({preventDefault: function(){}, keyCode: local_player_settings.keys.start});
+                });
+
                 _registerForStartDataPackets(web_socket, input_device, input_sender, tick_receiver);
 
                 _registerForGameOverPackets(web_socket);

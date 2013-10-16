@@ -142,6 +142,9 @@ var websocktransport = require('./websocktransport.js');
                 _player_id = player_id;
             },
 
+            doKeyDown : doKeyDown,
+            doKeyUp : doKeyUp,
+
             setOnCommandCallback : function (callback) {
                 _onCommandCallback = callback;
             }
