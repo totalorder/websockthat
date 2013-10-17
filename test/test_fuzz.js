@@ -18,6 +18,7 @@ suite('fuzz', function () {
         config.CONFIG.start_countdown = 0;
         config.CONFIG.bind_to_port = 9999;
         config.CONFIG.connect_to_port = 9999;
+        config.CONFIG.max_players = 2;
 
         game.setTestOptions(true);
         // Get the server rollin'

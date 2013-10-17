@@ -124,7 +124,7 @@ var _ = require('underscore')._;
          */
         _createGameOnGame = function () {
             next_game_id += 1;
-            return new exports.Game(next_game_id, 1, 4, _deleteGame);
+            return new exports.Game(next_game_id, config.CONFIG.min_players, config.CONFIG.max_players, _deleteGame);
         },
 
         _stop = function () {
