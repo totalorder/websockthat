@@ -269,7 +269,8 @@ var config = require("./config.js"),
                 console.log("starting world");
 
                 // Set up internal data structures
-                var player_infos = [];
+                var player_infos = [],
+                    _set_up_player_datas = [];
 
                 // Clear the world, cleaning up any data from previous runs. Will call clear on the rendering engine as well
                 clear();
@@ -278,7 +279,8 @@ var config = require("./config.js"),
                 // should already be present
                 if (tick_sender) {
                     _.each(_player_datas, function (player_data) {
-                        simulator.setUpPlayerData(player_data);
+                        simulator.setUpPlayerData(player_data, _set_up_player_datas);
+                        _set_up_player_datas.push(player_data);
                     });
                 }
 

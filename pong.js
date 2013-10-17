@@ -119,7 +119,7 @@ var input = require('./input.js');
             populatePlayersMap();
         };
 
-        var setUpPlayerData = function (player_data) {
+        var setUpPlayerData = function (player_data, set_up_player_datas) {
             if (player_data.id == 0) {
                 player_data.x = 10;
             } else {

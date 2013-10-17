@@ -188,16 +188,47 @@ var input = require('./input.js');
 
             /**
              * Do setup work for a player before it's instantiated.
-             * Calculate a random position within further than 10% of the mapsize from any map-edge,
-             * and randomize a direction between 0 and 360 degrees
+             * Calculate a random position within further than 30% of the mapsize from any map-edge,
+             * and randomize a direction between 0 and 360 degrees. Make sure the random location is at least
+             * 50 * MOVEMENT_SPEED units away from any other spawn point.
              * if player_data.test_client is set, we're running a test and applying start positions that will
              * end the game quickly
              *
              * @param player_data - An instance of a player_data-object, that will be passed to createPlayer()
+             * @param set_up_player_datas - player_data for players who have already been set up
              */
-            setUpPlayerData = function (player_data) {
-                player_data.x = options.GAME_WIDTH * 0.1 + Math.random() * options.GAME_WIDTH * 0.8;
-                player_data.y = options.GAME_HEIGHT * 0.1 + Math.random() * options.GAME_HEIGHT * 0.8;
+            setUpPlayerData = function (player_data, set_up_player_datas) {
+                var _max_tries = 5, try_again;
+
+                // Try 5 times to randomize a position 30 * MOVEMENT_SPEED units away from any other player spawn point
+                while (true) {
+                    try_again = false;
+
+                    // Randomize a spawn point further than 30% of the mapsize from any map-edge.
+                    player_data.x = options.GAME_WIDTH * 0.3 + Math.random() * options.GAME_WIDTH * 0.7;
+                    player_data.y = options.GAME_HEIGHT * 0.3 + Math.random() * options.GAME_HEIGHT * 0.7;
+                    _max_tries--;
+
+                    if (_max_tries == 0) {
+                        break;
+                    }
+
+                    // Check if we're too close to any other player and set try_again if we are
+                    _.each(set_up_player_datas, function (set_up_player_data) {
+
+                        if(Math.sqrt(Math.pow(set_up_player_data.x - player_data.x,2) +
+                            Math.pow(set_up_player_data.y - player_data.y,2)) < options.MOVEMENT_SPEED * 50){
+                            try_again = true;
+                            return true; // Simulate a "break"
+                        }
+                        console.log(options.MOVEMENT_SPEED * 50, Math.sqrt(Math.pow(set_up_player_data.x - player_data.x,2) +
+                            Math.pow(set_up_player_data.y - player_data.y,2)));
+                    });
+
+                    if (!try_again) {
+                        break;
+                    }
+                }
                 player_data.direction = Math.random() * 360;
 
                 // Set test positions that will end the game quickly if we're running a test
@@ -343,13 +374,14 @@ var input = require('./input.js');
                             _hole_size = -Math.random() * 280 - 140;
                         }
 
-                        // Only add a trail if our hole size if negative
-                        if (_hole_size < 0) {
-                            // Add one point to our trail and send the point off through the tick_sender to the other players
-                            var trail_point = {x: _x, y: _y};
-                            _trail.push(trail_point);
-                            tick_sender.setPlayerData(id, trail_point);
+                        var trail_point = {x: _x, y: _y};
+                        // Mark the point as part of a hole if our hole size if zero or more
+                        if (_hole_size >= 0) {
+                            trail_point.h = true;
                         }
+
+                        _trail.push(trail_point);
+                        tick_sender.setPlayerData(id, trail_point);
                     },
 
                     /**
@@ -394,13 +426,22 @@ var input = require('./input.js');
                             // To draw lines between the points:
                             // drawLineBetweenPoints(point, last_point);
 
-                            ctx.beginPath();
-                            ctx.arc(point.x, point.y, settings.LINE_SIZE, 0, Math.PI * 2, true);
-                            ctx.closePath();
-                            ctx.fill();
+                            // Only draw a point if it's not a hole
+                            if(!point.h) {
+                                ctx.beginPath();
+                                ctx.arc(point.x, point.y, settings.LINE_SIZE, 0, Math.PI * 2, true);
+                                ctx.closePath();
+                                ctx.fill();
+                            }
 
                             last_point = point;
                         });
+
+                        // Draw the last point any way since its needed to guide the player during hole construction
+                        ctx.beginPath();
+                        ctx.arc(last_point.x, last_point.y, settings.LINE_SIZE, 0, Math.PI * 2, true);
+                        ctx.closePath();
+                        ctx.fill();
                     },
 
                     /**
@@ -458,10 +499,15 @@ var input = require('./input.js');
                                     return true; // Simulate a "break;"
                                 }
 
-                                var distance = Math.sqrt(Math.pow(_x - point.x,2) + Math.pow(_y - point.y,2));
+                                // Only consider points that are not holes. Since the most forward point could be a hole
+                                // this can lead to "jumping" over other players if one is really lucky and starts a hole
+                                // just before a collision. This is not a bug - it's a feature!
+                                if (!point.h) {
+                                    var distance = Math.sqrt(Math.pow(_x - point.x,2) + Math.pow(_y - point.y,2));
 
-                                if (distance <= settings.LINE_SIZE) {
-                                    collisions.push(distance);
+                                    if (distance <= settings.LINE_SIZE) {
+                                        collisions.push(distance);
+                                    }
                                 }
                             });
                         });
