@@ -113,22 +113,34 @@ var _ = require('underscore')._;
                 // Get the ratio (0 > r > 1) of the tick duration
                 // Representing how big part of the tick that has elapsed
 
-                var tick_duration_ratio = world.getTickDurationRatio();
+                var tick_duration_ratio = world.getTickDurationRatio(),
+                    // The areas that need to be redrawn this frame
+                    redraw_areas = [];
 
-                ctx.clearRect(0, 0, canvas_size.width, canvas_size.height);
+                // Gather areas that need to be redrawn this frame
+                redraw_areas = redraw_areas.concat(simulator.prepareDraw(ctx));
+                _.each(players, function (player) {
+                    redraw_areas = redraw_areas.concat(player.prepareDraw(ctx));
+                });
 
                 ctx.save();
-                simulator.draw(ctx);
+                simulator.draw(ctx, redraw_areas);
                 ctx.restore();
 
                 _.each(players, function (player) {
                     ctx.save();
-                    player.draw(ctx);
+                    player.draw(ctx, redraw_areas);
                     ctx.restore();
+                });
+
+                // Draw all redraw areas onto the main context
+                _.each(redraw_areas, function (area) {
+                    ctx.drawImage(area.canvas, area.x, area.y);
                 });
             },
 
             clear = function () {
+                ctx.clearRect(0, 0, canvas_size.width, canvas_size.height);
                 players = [];
             },
 
@@ -141,7 +153,7 @@ var _ = require('underscore')._;
                 // It will continue for ever
                 if (!running) {
                     console.log("starting rendering engine");
-                    //console.log(world);
+                    ctx.clearRect(0, 0, canvas_size.width, canvas_size.height);
                     running = true;
                     redrawLoop();
                 }

@@ -254,7 +254,8 @@ var input = require('./input.js');
              *
              * @param ctx a HTML5-canvas context
              */
-            draw = function (ctx) {},
+            draw = function (ctx, redraw_areas) {},
+            prepareDraw = function (ctx) { return [] },
 
             /**
              * Externally exposed callback that should be called by TickReceiver.onTickReceived
@@ -323,6 +324,14 @@ var input = require('./input.js');
 
                     // Boolean telling if the player is alive or out of the game
                     alive = true,
+
+                    // The canvas and context spanning the area around the head of the snake to be redrawn each frame
+                    area_canvas,
+                    area_ctx,
+
+                    // The size of the area around the head of the snake to be redrawn each frame
+                    area_size = settings.LINE_SIZE * 10,
+                    half_area_size = Math.floor(area_size / 2),
 
                     /**
                      * Returns the current input state of the player
@@ -396,12 +405,23 @@ var input = require('./input.js');
                     },
 
                     /**
+                     * Do setup for rendering
+                     * Create a canvas for rendering just the area around the head of the snake
+                     */
+                    _setupRendering = function () {
+                        area_canvas = document.createElement("canvas");
+                        area_canvas.width = area_size;
+                        area_canvas.height = area_size;
+                        area_ctx = area_canvas.getContext('2d');
+                    },
+
+                    /**
                      * Draw the current player by looping through all trail points and drawing arcs with the
                      * players color
                      *
                      * @param ctx a HTML5-canvas context
                      */
-                    draw = function (ctx) {
+                    draw = function (ctx, redraw_areas) {
                         /**
                          * Utility function that draws a line between two points
                          * Not necessary if the trail points are close enough
@@ -418,30 +438,84 @@ var input = require('./input.js');
                                 }
                             },
 
-                            last_point = false;
+                            last_point = _trail[_trail.length - 1];
 
-                        // Draw a filled arc for each trail point in our trail
-                        ctx.fillStyle = color;
-                        _.each(_trail, function (point) {
-                            // To draw lines between the points:
-                            // drawLineBetweenPoints(point, last_point);
-
-                            // Only draw a point if it's not a hole
-                            if(!point.h) {
-                                ctx.beginPath();
-                                ctx.arc(point.x, point.y, settings.LINE_SIZE, 0, Math.PI * 2, true);
-                                ctx.closePath();
-                                ctx.fill();
-                            }
-
-                            last_point = point;
+                        // Make the context of all area draw our color before we paint anything
+                        _.each(redraw_areas, function (area) {
+                            area.ctx.fillStyle = color;
                         });
 
-                        // Draw the last point any way since its needed to guide the player during hole construction
-                        ctx.beginPath();
-                        ctx.arc(last_point.x, last_point.y, settings.LINE_SIZE, 0, Math.PI * 2, true);
-                        ctx.closePath();
-                        ctx.fill();
+                        // Draw a filled arc for each trail point in our trail
+                        _.each(_trail, function (point) {
+                            // Only draw a point if it's not a hole, but always draw the last point since its a
+                            // visual guide for the player
+                            if(!point.h || point === last_point) {
+                                // All areas enclosing the point
+                                var areas_matching = [];
+
+                                // Find all areas enclosing the point, taking line size into account.
+                                _.each(redraw_areas, function (area) {
+                                    if (point.x >= area.x - settings.LINE_SIZE && point.y >= area.y - settings.LINE_SIZE
+                                        && point.x <= area.x2 + settings.LINE_SIZE && point.y <= area.y2 + settings.LINE_SIZE) {
+                                        areas_matching.push(area);
+
+                                        // If this point is not close to the border of the area (ie not within LINE_SIZE)
+                                        // break out of the loop since we only want to draw it on one area
+                                        // Points on the border of areas need to be drawn separately on each area to
+                                        // avoid cropping
+                                        if (point.x >= area.x && point.y >= area.y && point.x <= area.x2 && point.y <= area.y2 ) {
+                                            return true; // Simulate a "break"
+                                        }
+                                    }
+                                });
+
+                                // Draw a filled circle on each area enclosing the point
+                                // Don't forget that we need to take the area position-rounding error into account when
+                                // drawing to get a smooth rendering
+                                _.each(areas_matching, function (area_matching) {
+                                    area_matching.ctx.beginPath();
+                                    area_matching.ctx.arc(area_matching.x_round + point.x - area_matching.ref.x +
+                                        half_area_size, area_matching.y_round + point.y - area_matching.ref.y +
+                                        half_area_size, settings.LINE_SIZE, 0, Math.PI * 2, true);
+                                    area_matching.ctx.closePath();
+                                    area_matching.ctx.fill();
+                                });
+                            }
+                        });
+                    },
+
+                    /**
+                     * Set up the areas that need to be redrawn this frame
+                     * Clear them and return a list of data structures representing the area like:
+                     * [{x: ..., // Left
+                     *  y: ..., // Top
+                     *  x2: ..., // Right
+                     *  y2: ..., // Bottom
+                     *  ctx: ..., // Canvas context
+                     *  canvas: ..., // Canvas
+                     *  x_round: ..., // x rounding error
+                     *  y_round: ... // y rounding error
+                     *  }]
+                     */
+                    prepareDraw = function (ctx) {
+                        // Setup rendering primitives like area_ctx and area_canvas
+                        if (!area_canvas) {
+                            _setupRendering();
+                        }
+
+                        // Calculate the borders or our redraw-area based on the head of the snake and area_size
+                        var last_point = _trail[_trail.length - 1];
+                        var clear_x = Math.floor(last_point.x) - half_area_size,
+                            clear_y = Math.floor(last_point.y) - half_area_size;
+
+                        // Clear the main context and the area context - preparations finished
+                        ctx.clearRect(clear_x, clear_y, area_size, area_size);
+                        area_ctx.clearRect(0, 0, area_size, area_size);
+                        return [{x:clear_x, y: clear_y,
+                                 x2: clear_x + area_size, y2: clear_y + area_size,
+                                 ctx: area_ctx, ref: last_point, canvas: area_canvas,
+                                 x_round : last_point.x - Math.floor(last_point.x),
+                                 y_round : last_point.y - Math.floor(last_point.y)}];
                     },
 
                     /**
@@ -588,6 +662,7 @@ var input = require('./input.js');
                 return {
                     simulate: simulate,
                     draw: draw,
+                    prepareDraw: prepareDraw,
                     getTrail: getTrail,
                     getInputState: getInputState,
                     getCollision: getCollision,
@@ -609,6 +684,7 @@ var input = require('./input.js');
             simulate : simulate,
             receiveExternalUpdate : receiveExternalUpdate,
             start : start,
+            prepareDraw: prepareDraw,
             setUpPlayerData : setUpPlayerData,
             createPlayer : createPlayer,
             draw : draw,
