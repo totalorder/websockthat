@@ -22,6 +22,9 @@ var _ = require('underscore')._;
             redraw_interval = desired_redraw_interval, // The current redraw interval
             redraw_start_time = new Date().getTime(), // The time the last redraw started
             frame_render_time = 100, // The time it took to render the last frame
+            fps_measure_start_time,
+            fps_measure_frames = 59,
+            fps = 0,
 
             width = settings.GAME_WIDTH,
             height = settings.GAME_HEIGHT,
@@ -45,7 +48,11 @@ var _ = require('underscore')._;
             running = false,
 
             _init = function () {
-                console.log("drawing on canvas", canvas);
+                window.requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame ||
+                    window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
+
+                console.log("drawing on canvas", canvas, "with requestAnimationFrame", window.requestAnimationFrame);
+
                 ctx = canvas.getContext("2d");
 
                 ctx.lineWidth = settings.LINE_SIZE * 2;
@@ -55,19 +62,27 @@ var _ = require('underscore')._;
 
 
             redrawLoop = function () {
+                var _fps_now;
                 // Draws to the canvas at a given frames per second, slowing down FPS if rendering is too slow
                 // Will keep on looping forever
 
                 // Record the time when the redraw starts to measure execution time
                 redraw_start_time = new Date().getTime();
 
-                //console.log(world);
-
                 // Draw debug/log/performance data in DOM
-                FPS_span.innerHTML = 1000 / redraw_interval;
                 TPS_span.innerHTML = world.getTicksPerSecondText();
                 log_div.innerHTML = world.getLogData().substr(0,2048);
                 debug_div.innerHTML = debug_message;
+
+                // Measure and display FPS
+                fps_measure_frames++;
+                if (fps_measure_frames == 60) {
+                    _fps_now = new Date().getTime();
+                    FPS_span.innerHTML = fps;
+                    fps = 1000 / ((_fps_now - fps_measure_start_time) / 60);
+                    fps_measure_frames = 0;
+                    fps_measure_start_time = _fps_now;
+                }
 
                 // Do the actual redrawing of the screen
                 _redraw();
@@ -82,7 +97,11 @@ var _ = require('underscore')._;
 
                 if(running) {
                     // Re-run the rendering loop
-                    setTimeout(redrawLoop, redraw_interval);
+                    if (requestAnimationFrame) {
+                        requestAnimationFrame(redrawLoop);
+                    } else {
+                        setTimeout(redrawLoop, redraw_interval);
+                    }
                 } else {
                     console.log("stopping rendering engine");
                 }

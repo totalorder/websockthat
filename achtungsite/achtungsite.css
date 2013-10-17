@@ -39,6 +39,7 @@ input[name="screen_name"] {
     width: 100%;
 }
 
+/* CSS-hack to make the height of game-area canvas the same as the width*/
 .canvas-resize-dummy {
     width: 100%;
     height: 0;

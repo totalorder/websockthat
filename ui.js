@@ -1,21 +1,31 @@
 "use strict";
 
 (function(exports){
-    exports.UI = function (game_area_selector, stats_box_selector, toast_selector, lobby_selector) {
-        var game_area, stats_box, toast_box, lobby, click_callback, last_touch_direction = 0,
+    exports.UI = function (game_area_selector, canvas_selector, stats_box_selector, toast_selector, lobby_selector) {
+        var game_area, stats_box, toast_box, lobby, click_callback, last_touch_direction = 0, canvas,
             _init = function () {
                 game_area = document.querySelectorAll(game_area_selector)[0];
                 stats_box = document.querySelectorAll(stats_box_selector)[0];
                 toast_box = document.querySelectorAll(toast_selector)[0];
                 lobby = document.querySelectorAll(lobby_selector)[0];
+                canvas = document.querySelectorAll(canvas_selector)[0];
 
-                // Add listerens for touch devices
+                // Add listeners for touch devices
                 document.addEventListener('touchmove', _touchMoveCallback);
                 document.addEventListener('touchstart', _touchStartCallback);
                 document.addEventListener('touchend', _touchEndCallback);
 
                 toast_box.top = game_area.height / 2 - toast_box.height / 2;
                 toast_box.left = game_area.width / 2 - toast_box.width / 2;
+
+                // Hack to make the height of the canvas the same as the width, on browsers that doesn't accept
+                // the CSS-hack in
+                if (canvas.offsetHeight === 0) {
+                    canvas.style.height = canvas.offsetWidth + "px";
+                    window.addEventListener('resize', function (evt) {
+                        canvas.style.height = canvas.offsetWidth + "px";
+                    })
+                }
             },
 
             // Calculate the average position of all touches and send it to _clickInput
@@ -36,9 +46,9 @@
             _clickInput = function (x, y) {
                 var touch_direction;
                 if (click_callback !== undefined) {
-                    if (x < screen.width / 2.1) {
+                    if (x < window.outerWidth / 2.1) {
                         touch_direction = -1;
-                    } else if (x > screen.width - screen.width / 2.1) {
+                    } else if (x > window.outerWidth - window.outerWidth / 2.1) {
                         touch_direction = 1;
                     } else {
                         touch_direction = 0;
@@ -50,7 +60,7 @@
                 }
             },
             _touchEndCallback = function (evt) {
-                _clickInput(screen.width / 2, screen.height / 2);
+                _clickInput(window.outerWidth / 2, window.outerWidth / 2);
                 evt.preventDefault();
                 return false;
             },

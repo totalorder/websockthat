@@ -13,7 +13,7 @@ var _ = require('underscore')._;
 (function () { // Don't pollute the global namespace
     var local_player_settings = null,
         client_world = null,
-        _ui = new ui.UI(".game-area", ".stats-box", ".toast", ".lobby"),
+        _ui = new ui.UI(".game-area", "#canvas", ".stats-box", ".toast", ".lobby"),
 
         _init = function () {
             // Create a new WebSocket client
