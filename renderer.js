@@ -34,10 +34,8 @@ var _ = require('underscore')._;
 
             players = [],
             canvas = document.getElementById(element_id),
-
-
-            ctx = canvas.getContext("2d"),
             debug_message = "",
+            ctx,
 
             canvas_size = {
                 width: width,
@@ -48,9 +46,7 @@ var _ = require('underscore')._;
 
             _init = function () {
                 console.log("drawing on canvas", canvas);
-
-                canvas.setAttribute("width", width);
-                canvas.setAttribute("height", height);
+                ctx = canvas.getContext("2d");
 
                 ctx.lineWidth = settings.LINE_SIZE * 2;
                 ctx.strokeStyle="rgb(0,0,0)";

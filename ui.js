@@ -2,19 +2,9 @@
 
 (function(exports){
     exports.UI = function (game_area_selector, stats_box_selector, toast_selector, lobby_selector) {
-        var game_area, stats_box, toast_box, lobby, click_callback, last_touch_direction = 0, play_container, min_size,
+        var game_area, stats_box, toast_box, lobby, click_callback, last_touch_direction = 0,
             _init = function () {
                 game_area = document.querySelectorAll(game_area_selector)[0];
-                play_container = document.querySelectorAll(".play-container")[0];
-
-                // Zoom the play container to fit screen if screen is too small
-                // Should be done in a more performance friendly manner by sizing just the canvas
-                // and drawing on a scaled canvas context
-                min_size = screen.width < screen.height ? screen.width : screen.height;
-                if(min_size < play_container.offsetWidth) {
-                    play_container.style.zoom = min_size / play_container.offsetWidth;
-                }
-
                 stats_box = document.querySelectorAll(stats_box_selector)[0];
                 toast_box = document.querySelectorAll(toast_selector)[0];
                 lobby = document.querySelectorAll(lobby_selector)[0];
@@ -46,9 +36,9 @@
             _clickInput = function (x, y) {
                 var touch_direction;
                 if (click_callback !== undefined) {
-                    if (x < screen.width / 3) {
+                    if (x < screen.width / 2.1) {
                         touch_direction = -1;
-                    } else if (x > screen.width - screen.width / 3) {
+                    } else if (x > screen.width - screen.width / 2.1) {
                         touch_direction = 1;
                     } else {
                         touch_direction = 0;
