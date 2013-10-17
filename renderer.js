@@ -39,6 +39,8 @@ var _ = require('underscore')._;
             canvas = document.getElementById(element_id),
             debug_message = "",
             ctx,
+            new_ctx,
+            new_canvas,
 
             canvas_size = {
                 width: width,
@@ -51,12 +53,24 @@ var _ = require('underscore')._;
                 window.requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame ||
                     window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
 
-                console.log("drawing on canvas", canvas, "with requestAnimationFrame", window.requestAnimationFrame);
-
                 ctx = canvas.getContext("2d");
+                console.log("drawing on canvas", canvas, "with requestAnimationFrame", window.requestAnimationFrame);
 
                 ctx.lineWidth = settings.LINE_SIZE * 2;
                 ctx.strokeStyle="rgb(0,0,0)";
+                /* This should work in a modern iPhone, but doesn't work on Android. I don't have access to
+                * an Apple device so this will have to sleep
+                 * var scale_factor;
+                if (canvas.offsetWidth < canvas_size.width) {
+                    scale_factor = (window.devicePixelRatio * canvas.offsetWidth) / canvas_size.width;
+                    new_canvas = document.createElement("canvas");
+                    new_canvas.width = window.devicePixelRatio * canvas.offsetWidth;
+                    new_canvas.height = window.devicePixelRatio * canvas.offsetHeight;
+                    new_ctx = new_canvas.getContext("2d");
+                    canvas.parentNode.replaceChild(new_canvas, canvas);
+                    new_canvas.id = "canvas";
+                    new_ctx.scale(scale_factor, scale_factor);
+                }*/
             },
 
 
@@ -137,6 +151,12 @@ var _ = require('underscore')._;
                 _.each(redraw_areas, function (area) {
                     ctx.drawImage(area.canvas, area.x, area.y);
                 });
+
+                /* Disabled because of lack of Apple-devices to test this on
+                if (new_ctx) {
+                    new_ctx.clearRect(0, 0, canvas_size.width, canvas_size.height);
+                    new_ctx.drawImage(canvas, 0, 0);
+                }*/
             },
 
             clear = function () {
