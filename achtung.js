@@ -205,8 +205,8 @@ var input = require('./input.js');
                     try_again = false;
 
                     // Randomize a spawn point further than 30% of the mapsize from any map-edge.
-                    player_data.x = options.GAME_WIDTH * 0.3 + Math.random() * options.GAME_WIDTH * 0.7;
-                    player_data.y = options.GAME_HEIGHT * 0.3 + Math.random() * options.GAME_HEIGHT * 0.7;
+                    player_data.x = options.GAME_WIDTH * 0.3 + Math.random() * options.GAME_WIDTH * 0.4;
+                    player_data.y = options.GAME_HEIGHT * 0.3 + Math.random() * options.GAME_HEIGHT * 0.4;
                     _max_tries--;
 
                     if (_max_tries == 0) {
