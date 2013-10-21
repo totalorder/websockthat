@@ -80,6 +80,10 @@ input[name="screen_name"] {
     font-weight: bold;
 }
 
+.toast .submessage {
+    font-size: 60%;
+}
+
 .debug-data {
 color: lightgray;
 }

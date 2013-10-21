@@ -52,7 +52,7 @@ var _ = require('underscore')._;
         _waitForConnectionOpen = function (web_socket) {
             console.log("waiting for connection open");
             web_socket.onopen = function() {
-                _ui.createToast("Waiting for other players...");
+                _ui.createToast("Waiting for other players...", "Press space to start");
 
                 // Send a HELLO to the server, telling it our name and that we're interested in chatting with it
                 web_socket.sendObject(communication.createHelloPacket(local_player_settings.name));
@@ -149,6 +149,8 @@ var _ = require('underscore')._;
                 var info = document.createElement("li");
                 info.innerHTML = packet.connected_players + "/" + packet.max_players + " connected, " +
                     packet.players_ready + "/" + packet.min_players + " ready";
+                _ui.createToast("Waiting for other players...", "Press space to start! (" + (packet.connected_players - packet.players_ready) + " players not ready)");
+
                 _ui.addStatsBoxLine(info);
                 _.each(packet.player_infos, function (player_info) {
                     var player_info_li = document.createElement("li"),

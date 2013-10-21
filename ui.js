@@ -78,9 +78,15 @@
                 lobby.appendChild(line);
             },
 
-            _createToast = function (message) {
+            _createToast = function (message, submessage) {
                 toast_box.innerHTML = message;
                 toast_box.style.display = "block";
+                if (submessage) {
+                    var submessage_div = document.createElement("div");
+                    submessage_div.innerHTML = submessage;
+                    submessage_div.className = "submessage";
+                    toast_box.appendChild(submessage_div);
+                }
             },
 
             _hideToast = function () {
