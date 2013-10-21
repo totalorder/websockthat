@@ -14,7 +14,7 @@ var _ = require('underscore')._;
     var local_player_settings = null,
         is_touch_device = 'ontouchstart' in document.documentElement,
         client_world = null,
-        _ui = new ui.UI(".game-area", "#canvas", ".stats-box", ".toast", ".lobby"),
+        _ui = new ui.UI(".game-area", "#canvas", ".stats-box", ".toast", ".lobby", ".keyinfo-box"),
         start_key_text = is_touch_device ? "Touch screen" : "Press space",
 
         _init = function () {
@@ -144,7 +144,7 @@ var _ = require('underscore')._;
         },
 
         _registerForLobbyStatePackets = function (web_socket) {
-            // Register for incoming pakcets of the type LOBBY_STATE
+            // Register for incoming packets of the type LOBBY_STATE
             web_socket.registerReceivedPacketCallback(communication.PACKET_TYPES.LOBBY_STATE, null, function (packet) {
                 _ui.clearStatsBox();
 
@@ -170,6 +170,7 @@ var _ = require('underscore')._;
                 });
 
                 if (packet.prepare_for_start) {
+                    _ui.hideKeyinfoBox();
                     _ui.startToastCountdown(packet.prepare_for_start);
                 }
             });

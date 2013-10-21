@@ -24,6 +24,16 @@ input[name="screen_name"] {
     .play-container {
         width: 100%;
     }
+
+    .desktop {
+        display: none;
+    }
+}
+
+@media(min-width: 621px) {
+    .touch {
+        display: none;
+    }
 }
 
 .play-container h1 {
@@ -63,6 +73,34 @@ input[name="screen_name"] {
     min-width: 200px;
     background-color: lightgray;
     opacity: 0.5;
+}
+
+.game-area .keyinfo-box {
+    border-radius: 5px;
+    position: absolute;
+    padding: 10px;
+    top: 40%;
+    left: 30%;
+    width: 40%;
+    background-color: lightgray;
+    opacity: 0.3;
+    font-size: 90%;
+    color: black;
+}
+
+.hide {
+    display: none;
+}
+
+.keyinfo-box.desktop strong {
+    width: 40%;
+    display: inline-block;
+}
+
+.keyinfo-box.touch {
+    top: 25%;
+    left: 10%;
+    width: 80%;
 }
 
 .stats-box ul {

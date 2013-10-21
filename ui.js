@@ -1,14 +1,17 @@
 "use strict";
+var _ = require('underscore')._;
 
 (function(exports){
-    exports.UI = function (game_area_selector, canvas_selector, stats_box_selector, toast_selector, lobby_selector) {
-        var game_area, stats_box, toast_box, lobby, click_callback, last_touch_direction = 0, canvas,
+    exports.UI = function (game_area_selector, canvas_selector, stats_box_selector, toast_selector, lobby_selector,
+                           keyinfo_boxes_selector) {
+        var game_area, stats_box, toast_box, lobby, click_callback, last_touch_direction = 0, canvas, keyinfo_boxes,
             _init = function () {
                 game_area = document.querySelectorAll(game_area_selector)[0];
                 stats_box = document.querySelectorAll(stats_box_selector)[0];
                 toast_box = document.querySelectorAll(toast_selector)[0];
                 lobby = document.querySelectorAll(lobby_selector)[0];
                 canvas = document.querySelectorAll(canvas_selector)[0];
+                keyinfo_boxes = document.querySelectorAll(keyinfo_boxes_selector);
 
                 // Add listeners for touch devices
                 document.addEventListener('touchmove', _touchMoveCallback);
@@ -19,12 +22,12 @@
                 toast_box.left = game_area.width / 2 - toast_box.width / 2;
 
                 // Hack to make the height of the canvas the same as the width, on browsers that doesn't accept
-                // the CSS-hack in
+                // the CSS-hack in .canvas-resize-dummy
                 if (canvas.offsetHeight === 0) {
                     canvas.style.height = canvas.offsetWidth + "px";
                     window.addEventListener('resize', function (evt) {
                         canvas.style.height = canvas.offsetWidth + "px";
-                    })
+                    });
                 }
             },
 
@@ -59,6 +62,8 @@
                     }
                 }
             },
+            // Send a middle-of-the-screen click when a release is triggered.
+            // Resulting in a 0/release in _clickInput
             _touchEndCallback = function (evt) {
                 _clickInput(window.outerWidth / 2, window.outerWidth / 2);
                 evt.preventDefault();
@@ -106,6 +111,14 @@
             },
             _setClickCallback = function (callback) {
                 click_callback = callback;
+            },
+
+            _hideKeyinfoBox = function () {
+                _.each(keyinfo_boxes, function (keyinfo_box) {
+                    if(!keyinfo_box.className.indexOf("hide") >= 0) {
+                        keyinfo_box.className += " hide";
+                    }
+                });
             };
 
         return {
@@ -115,6 +128,7 @@
             hideToast : _hideToast,
             startToastCountdown : _startToastCountdown,
             setClickCallback : _setClickCallback,
+            hideKeyinfoBox : _hideKeyinfoBox,
             init : _init
         };
     };
