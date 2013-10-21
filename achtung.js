@@ -221,8 +221,6 @@ var input = require('./input.js');
                             try_again = true;
                             return true; // Simulate a "break"
                         }
-                        console.log(options.MOVEMENT_SPEED * 50, Math.sqrt(Math.pow(set_up_player_data.x - player_data.x,2) +
-                            Math.pow(set_up_player_data.y - player_data.y,2)));
                     });
 
                     if (!try_again) {
@@ -321,6 +319,13 @@ var input = require('./input.js');
 
                     // The trail of the players worm. A list of points, starting at the start x/y of the player
                     _trail = [{x: _x, y: _y}],
+
+                    // Data structure to keep track of what trail points are located within
+                    // what quad on the screen, to speed up rendering
+                    _trail_quads = {},
+
+                    // The resolution of the grid
+                    _trail_quad_resolution = 3,
 
                     // Boolean telling if the player is alive or out of the game
                     alive = true,
@@ -445,42 +450,72 @@ var input = require('./input.js');
                             area.ctx.fillStyle = color;
                         });
 
-                        // Draw a filled arc for each trail point in our trail
-                        _.each(_trail, function (point) {
-                            // Only draw a point if it's not a hole, but always draw the last point since its a
-                            // visual guide for the player
-                            if(!point.h || point === last_point) {
-                                // All areas enclosing the point
-                                var areas_matching = [];
+                        // Find all trail_quads who contain a corner of a redraw area, and put the matching areas
+                        // along the matching quads
+                        var matching_trail_quads = [];
+                        _.each(_trail_quads, function(trail_quad) {
+                            var areas = [];
+                            _.each(redraw_areas, function (area) {
+                                // Check if any of the corners of the area are inside the quad, taking line size into account
+                                if (area.x + settings.LINE_SIZE >= trail_quad.x && area.y + settings.LINE_SIZE >= trail_quad.y &&
+                                    area.x - settings.LINE_SIZE <= trail_quad.x2 && area.y - settings.LINE_SIZE <= trail_quad.y2) {
+                                    areas.push(area);
+                                } else if (area.x2 + settings.LINE_SIZE >= trail_quad.x && area.y + settings.LINE_SIZE >= trail_quad.y &&
+                                    area.x - settings.LINE_SIZE <= trail_quad.x2 && area.y - settings.LINE_SIZE <= trail_quad.y2) {
+                                    areas.push(area);
+                                } else if (area.x2 + settings.LINE_SIZE >= trail_quad.x && area.y2 + settings.LINE_SIZE >= trail_quad.y &&
+                                    area.x - settings.LINE_SIZE <= trail_quad.x2 && area.y - settings.LINE_SIZE <= trail_quad.y2) {
+                                    areas.push(area);
+                                } else if (area.x + settings.LINE_SIZE >= trail_quad.x && area.y2 + settings.LINE_SIZE >= trail_quad.y &&
+                                    area.x - settings.LINE_SIZE <= trail_quad.x2 && area.y - settings.LINE_SIZE <= trail_quad.y2) {
+                                    areas.push(area);
+                                }
+                            });
 
-                                // Find all areas enclosing the point, taking line size into account.
-                                _.each(redraw_areas, function (area) {
-                                    if (point.x >= area.x - settings.LINE_SIZE && point.y >= area.y - settings.LINE_SIZE
-                                        && point.x <= area.x2 + settings.LINE_SIZE && point.y <= area.y2 + settings.LINE_SIZE) {
-                                        areas_matching.push(area);
-
-                                        // If this point is not close to the border of the area (ie not within LINE_SIZE)
-                                        // break out of the loop since we only want to draw it on one area
-                                        // Points on the border of areas need to be drawn separately on each area to
-                                        // avoid cropping
-                                        if (point.x >= area.x && point.y >= area.y && point.x <= area.x2 && point.y <= area.y2 ) {
-                                            return true; // Simulate a "break"
-                                        }
-                                    }
-                                });
-
-                                // Draw a filled circle on each area enclosing the point
-                                // Don't forget that we need to take the area position-rounding error into account when
-                                // drawing to get a smooth rendering
-                                _.each(areas_matching, function (area_matching) {
-                                    area_matching.ctx.beginPath();
-                                    area_matching.ctx.arc(area_matching.x_round + point.x - area_matching.ref.x +
-                                        half_area_size, area_matching.y_round + point.y - area_matching.ref.y +
-                                        half_area_size, settings.LINE_SIZE, 0, Math.PI * 2, true);
-                                    area_matching.ctx.closePath();
-                                    area_matching.ctx.fill();
-                                });
+                            if (areas.length > 0) {
+                                matching_trail_quads.push({'quad':trail_quad, 'areas':areas});
                             }
+                        });
+
+                        // Draw all trail points that are within any of the matching trail quads, on the matching areas
+                        _.each(matching_trail_quads, function(matching_quad) {
+                            // Draw all trail points that are within an area
+                            _.each(matching_quad.quad.trail, function (point) {
+                                // Only draw a point if it's not a hole, but always draw the last point since its a
+                                // visual guide for the player
+                                if(!point.h || point === last_point) {
+                                    // All areas enclosing the point
+                                    var areas_matching = [];
+
+                                    // Find all areas enclosing the point, taking line size into account.
+                                    _.each(matching_quad.areas, function (area) {
+                                        if (point.x >= area.x - settings.LINE_SIZE && point.y >= area.y - settings.LINE_SIZE
+                                            && point.x <= area.x2 + settings.LINE_SIZE && point.y <= area.y2 + settings.LINE_SIZE) {
+                                            areas_matching.push(area);
+
+                                            // If this point is not close to the border of the area (ie not within LINE_SIZE)
+                                            // break out of the loop since we only want to draw it on one area
+                                            // Points on the border of areas need to be drawn separately on each area to
+                                            // avoid cropping
+                                            if (point.x >= area.x && point.y >= area.y && point.x <= area.x2 && point.y <= area.y2 ) {
+                                                return true; // Simulate a "break"
+                                            }
+                                        }
+                                    });
+
+                                    // Draw a filled circle on each area enclosing the point
+                                    // Don't forget that we need to take the area position-rounding error into account when
+                                    // drawing to get a smooth rendering
+                                    _.each(areas_matching, function (area_matching) {
+                                        area_matching.ctx.beginPath();
+                                        area_matching.ctx.arc(area_matching.x_round + point.x - area_matching.ref.x +
+                                            half_area_size, area_matching.y_round + point.y - area_matching.ref.y +
+                                            half_area_size, settings.LINE_SIZE, 0, Math.PI * 2, true);
+                                        area_matching.ctx.closePath();
+                                        area_matching.ctx.fill();
+                                    });
+                                }
+                            });
                         });
                     },
 
@@ -648,6 +683,22 @@ var input = require('./input.js');
                      * Run any initialization code needed before start
                      */
                     start = function () {
+                        // Create a grid of quads covering the whole play field
+                        // Used to filter relevant tail pieces during rendering
+                        var quad_width = settings.GAME_WIDTH / _trail_quad_resolution;
+                        var quad_height = settings.GAME_HEIGHT / _trail_quad_resolution;
+                        _trail_quads = [];
+                        _.each(_.range(_trail_quad_resolution), function(i) {
+                                _.each(_.range(_trail_quad_resolution), function(j) {
+                                    _trail_quads.push(
+                                        {'x': i * quad_width,
+                                         'x2' : i == _trail_quad_resolution - 1 ? settings.GAME_WIDTH : (i + 1) * quad_width,
+                                         'y': j * quad_height,
+                                         'y2' : j == _trail_quad_resolution - 1 ? settings.GAME_HEIGHT : (j + 1) * quad_height,
+                                         'trail' : []
+                                    });
+                                });
+                        });
                     },
 
                     /**
@@ -657,6 +708,13 @@ var input = require('./input.js');
                      */
                     addTrailPoint = function (point) {
                         _trail.push(point);
+                        // Add the point to the corresponding trail quad, for effective rendering
+                        _.each(_trail_quads, function(trail_quad){
+                            if (point.x >= trail_quad.x && point.y >= trail_quad.y &&
+                                point.x <= trail_quad.x2 && point.y <= trail_quad.y2) {
+                                trail_quad.trail.push(point);
+                            }
+                        });
                     };
 
                 return {
