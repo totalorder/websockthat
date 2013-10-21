@@ -72,6 +72,14 @@ var _ = require('underscore')._;
              */
             _web_socket_server.on('connection', function (client_web_socket) {
 
+                // Create a new game on game if the current one has started or is full
+                // If the game becomes full and someone leaves before it starts, it will never receive any
+                // new players. This could be a potential problem is games are not autostarted when full
+                if (_game_on_game.hasStarted() || _game_on_game.hasMaxClients()) {
+                    _running_games.push(_game_on_game);
+                    _game_on_game = _createGameOnGame();
+                }
+
                 // Increment the _next_client_id, that will be used to ID the next client
                 _next_client_id += 1;
 
@@ -80,14 +88,6 @@ var _ = require('underscore')._;
 
                 // Tell the current game on game that we have a new player for it
                 _game_on_game.newConnection(_next_client_id, client_web_socket);
-
-                // Create a new game on game if the current one has started or is full
-                // If the game becomes full and someone leaves before it starts, it will never receive any
-                // new players. This could be a potential problem is games are not autostarted when full
-                if (_game_on_game.hasStarted() || _game_on_game.hasMaxClients()) {
-                    _running_games.push(_game_on_game);
-                    _game_on_game = _createGameOnGame();
-                }
             });
         },
 
