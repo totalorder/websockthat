@@ -82,7 +82,7 @@ var websocktransport = require('./websocktransport.js');
                 if (_player_id !== null) {
                     issued_command = getPlayerKeyCommand(evt.keyCode);
                 }
-                if (issued_command) {
+                if (issued_command && evt.keyCode !== _last_command_key_code) {
                     _last_command_key_code = evt.keyCode;
                     _onCommandCallback(_player_id, issued_command);
                 } else {
