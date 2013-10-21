@@ -12,8 +12,10 @@ var _ = require('underscore')._;
 
 (function () { // Don't pollute the global namespace
     var local_player_settings = null,
+        is_touch_device = 'ontouchstart' in document.documentElement,
         client_world = null,
         _ui = new ui.UI(".game-area", "#canvas", ".stats-box", ".toast", ".lobby"),
+        start_key_text = is_touch_device ? "Touch screen" : "Press space",
 
         _init = function () {
             // Create a new WebSocket client
@@ -52,7 +54,7 @@ var _ = require('underscore')._;
         _waitForConnectionOpen = function (web_socket) {
             console.log("waiting for connection open");
             web_socket.onopen = function() {
-                _ui.createToast("Waiting for other players...", "Press space to start");
+                _ui.createToast("Waiting for other players...", start_key_text + " to start");
 
                 // Send a HELLO to the server, telling it our name and that we're interested in chatting with it
                 web_socket.sendObject(communication.createHelloPacket(local_player_settings.name));
@@ -137,7 +139,7 @@ var _ = require('underscore')._;
             web_socket.registerReceivedPacketCallback(communication.PACKET_TYPES.GAME_OVER, null, function (packet) {
                 console.log("GAME OVER!");
                 client_world.gameOver();
-                _ui.createToast("Game over! Press space to play again...");
+                _ui.createToast("Game over! " + start_key_text + " to play again...");
             });
         },
 
@@ -149,7 +151,7 @@ var _ = require('underscore')._;
                 var info = document.createElement("li");
                 info.innerHTML = packet.connected_players + "/" + packet.max_players + " connected, " +
                     packet.players_ready + "/" + packet.min_players + " ready";
-                _ui.createToast("Waiting for other players...", "Press space to start! (" + (packet.connected_players - packet.players_ready) + " players not ready)");
+                _ui.createToast("Waiting for other players...", start_key_text + " to start! (" + (packet.connected_players - packet.players_ready) + " players not ready)");
 
                 _ui.addStatsBoxLine(info);
                 _.each(packet.player_infos, function (player_info) {
