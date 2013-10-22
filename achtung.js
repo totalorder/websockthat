@@ -320,6 +320,9 @@ var input = require('./input.js');
                     // The trail of the players worm. A list of points, starting at the start x/y of the player
                     _trail = [{x: _x, y: _y}],
 
+                    // The head of the snake
+                    _last_trail_point = {x: _x, y: _y},
+
                     // Data structure to keep track of what trail points are located within
                     // what quad on the screen, to speed up rendering
                     _trail_quads = {},
@@ -441,9 +444,7 @@ var input = require('./input.js');
                                     ctx.closePath();
                                     ctx.stroke();
                                 }
-                            },
-
-                            last_point = _trail[_trail.length - 1];
+                            };
 
                         // Make the context of all area draw our color before we paint anything
                         _.each(redraw_areas, function (area) {
@@ -483,7 +484,7 @@ var input = require('./input.js');
                             _.each(matching_quad.quad.trail, function (point) {
                                 // Only draw a point if it's not a hole, but always draw the last point since its a
                                 // visual guide for the player
-                                if(!point.h || point === last_point) {
+                                if(!point.h || point === _last_trail_point) {
                                     // All areas enclosing the point
                                     var areas_matching = [];
 
@@ -539,18 +540,17 @@ var input = require('./input.js');
                         }
 
                         // Calculate the borders or our redraw-area based on the head of the snake and area_size
-                        var last_point = _trail[_trail.length - 1];
-                        var clear_x = Math.floor(last_point.x) - half_area_size,
-                            clear_y = Math.floor(last_point.y) - half_area_size;
+                        var clear_x = Math.floor(_last_trail_point.x) - half_area_size,
+                            clear_y = Math.floor(_last_trail_point.y) - half_area_size;
 
                         // Clear the main context and the area context - preparations finished
                         ctx.clearRect(clear_x, clear_y, area_size, area_size);
                         area_ctx.clearRect(0, 0, area_size, area_size);
                         return [{x:clear_x, y: clear_y,
                                  x2: clear_x + area_size, y2: clear_y + area_size,
-                                 ctx: area_ctx, ref: last_point, canvas: area_canvas,
-                                 x_round : last_point.x - Math.floor(last_point.x),
-                                 y_round : last_point.y - Math.floor(last_point.y)}];
+                                 ctx: area_ctx, ref: _last_trail_point, canvas: area_canvas,
+                                 x_round : _last_trail_point.x - Math.floor(_last_trail_point.x),
+                                 y_round : _last_trail_point.y - Math.floor(_last_trail_point.y)}];
                     },
 
                     /**
@@ -707,7 +707,7 @@ var input = require('./input.js');
                      * @param point - Trail point like {x: 1, y: 2}
                      */
                     addTrailPoint = function (point) {
-                        _trail.push(point);
+                        _last_trail_point = point;
                         // Add the point to the corresponding trail quad, for effective rendering
                         _.each(_trail_quads, function(trail_quad){
                             if (point.x >= trail_quad.x && point.y >= trail_quad.y &&

@@ -76,9 +76,10 @@ var communication = require("./communication.js");
             var json_string = JSON.stringify(obj);
 
             // Log all sending except tick-packets
-            if (obj.type !== 'TICK') {
+            // Disabled because of performance hit
+            /*if (obj.type !== 'TICK') {
                 console.log("sending: ", json_string);
-            }
+            }*/
             try {
                 web_socket.send(json_string);
 

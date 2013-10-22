@@ -84,9 +84,9 @@ var _ = require('underscore')._;
                 redraw_start_time = new Date().getTime();
 
                 // Draw debug/log/performance data in DOM
-                TPS_span.innerHTML = world.getTicksPerSecondText();
-                log_div.innerHTML = world.getLogData().substr(0,2048);
-                debug_div.innerHTML = debug_message;
+                // Disabled because of performance hit
+                /*log_div.innerHTML = world.getLogData().substr(0,2048);
+                debug_div.innerHTML = debug_message;*/
 
                 // Measure and display FPS
                 fps_measure_frames++;
@@ -96,6 +96,7 @@ var _ = require('underscore')._;
                     fps = 1000 / ((_fps_now - fps_measure_start_time) / 60);
                     fps_measure_frames = 0;
                     fps_measure_start_time = _fps_now;
+                    TPS_span.innerHTML = world.getTicksPerSecondText();
                 }
 
                 // Do the actual redrawing of the screen
