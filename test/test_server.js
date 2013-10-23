@@ -1,9 +1,10 @@
 "use strict";
 
+GLOBAL.CONFIG_FILE = "./config.js";
 var assert = require("assert");
 var mocks = require('./mocks.js');
 var communication = require("../communication.js");
-var config = require("../config.js");
+var config = require("../" + CONFIG_FILE);
 
 suite('server', function () {
     var s, osc;

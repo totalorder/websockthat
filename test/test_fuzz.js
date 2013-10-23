@@ -1,17 +1,18 @@
 "use strict";
 
+GLOBAL.CONFIG_FILE = "./config.js";
 var assert = require("assert");
 var mocks = require('./mocks.js');
 var communication = require("../communication.js");
 var websocktransport = require('../websocktransport.js');
 var world = require('../world.js');
 var _ = require('underscore')._;
-var config = require("../config.js");
+var config = require("../" + CONFIG_FILE);
 var server = require("../server.js");
 
 
 suite('fuzz', function () {
-    var osc, s, game = require("../" + config.CONFIG.game_package + ".js");
+    var osc, s, game = require("../" + config.CONFIG.game_package + "/game.js");
 
     setup(function () {
         osc = config.CONFIG.start_countdown;

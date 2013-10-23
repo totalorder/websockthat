@@ -1,18 +1,16 @@
 "use strict";
 
-"use strict";
-
+GLOBAL.CONFIG_FILE = "./config.js";
 var assert = require("assert");
 var mocks = require('./mocks.js');
 var server = require('../server.js');
 var communication = require("../communication.js");
-var config = require("../config.js");
+var config = require("../" + CONFIG_FILE);
 var websocktransport = require('../websocktransport.js');
 var world = require('../world.js');
 
-
 suite('world', function () {
-    var c1, c2, new_world, game = require("../" + config.CONFIG.game_package + ".js");
+    var c1, c2, new_world, game = require("../" + config.CONFIG.game_package + "/game.js");
 
     setup(function () {
         // Get the server rollin'
