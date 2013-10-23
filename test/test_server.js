@@ -15,6 +15,7 @@ suite('server', function () {
         config.CONFIG.connect_to_address = '127.0.0.1';
         config.CONFIG.connect_to_port = 9999;
         config.CONFIG.max_players = 2;
+        config.CONFIG.min_players = 1;
 
         // Get the server rollin'
         var server = require('../server.js');

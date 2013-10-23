@@ -5,6 +5,7 @@ var websocktransport = require("./websocktransport.js");
 var world = require("./world.js");
 var input = require("./input.js");
 var config = require("./config.js");
+var game = require("./" + config.CONFIG.game_package + ".js");
 var ui = require("./ui.js");
 
 var _ = require('underscore')._;
@@ -22,12 +23,13 @@ var _ = require('underscore')._;
             var web_socket = new window.WebSocket('ws://' + config.CONFIG.connect_to_address + ':' + config.CONFIG.connect_to_port + '/'),
                 player_name = window.location.search.split("?screen_name=")[1];
                 // Set up settings for the local player
-                local_player_settings = {
-                    name :  null,
-                    keys : {
-                        left : 37,
-                        right : 40,
-                        start : 32}
+            local_player_settings = {
+                name :  null,
+                keys : {
+                    37 : {'down' : game.INPUT_COMMANDS.LEFT_DOWN, 'up' : game.INPUT_COMMANDS.LEFT_RIGHT_UP},
+                    40 : {'down' : game.INPUT_COMMANDS.RIGHT_DOWN, 'up' : game.INPUT_COMMANDS.LEFT_RIGHT_UP},
+                    32 : {'down' : game.INPUT_COMMANDS.START, 'up' : null, 'local' : true}
+                }
             };
 
             _ui.init();
@@ -64,32 +66,32 @@ var _ = require('underscore')._;
                 var tick_receiver = websocktransport.WebSocketTickReceiver(web_socket),
                     input_sender = new websocktransport.WebSocketInputSender(web_socket),
 
-                // Set up an InputDevice that will listen to the keys pressed by the user and react to them
-                // Passing along specialKeyCommandsCallback that will send a START packet to the server when
-                // the InputDevice detects the START-input-event
+                    // Set up an InputDevice that will listen to the keys pressed by the user and react to them
+                    // Passing along localKeyCommandsCallback that will send a START packet to the server when
+                    // the InputDevice detects the START-input-event
                     input_device = new input.LocalInputDevice(local_player_settings.keys, function (command) {
-                        if (command === input.COMMANDS.START) {
+                        if (command === game.INPUT_COMMANDS.START) {
                             web_socket.sendObject(communication.createStartPacket());
                             console.log("waiting for players packet!");
                         }
-                });
+                    });
 
                 // Simulate keypresses when getting input from touch
                 // Expects click to be -1, 0 or 1 for left, release, right
                 // Will interpret any touch as "start"-key
                 _ui.setClickCallback(function (click) {
                     if (click === 0) {
-                        input_device.doKeyUp({preventDefault: function(){}, keyCode: local_player_settings.keys.left});
-                        input_device.doKeyUp({preventDefault: function(){}, keyCode: local_player_settings.keys.right});
+                        input_device.doKeyUp({preventDefault: function () {}, keyCode: 40});
+                        input_device.doKeyUp({preventDefault: function () {}, keyCode: 37});
                     } else if (click < 0) {
-                        input_device.doKeyUp({preventDefault: function(){}, keyCode: local_player_settings.keys.right});
-                        input_device.doKeyDown({preventDefault: function(){}, keyCode: local_player_settings.keys.left});
+                        input_device.doKeyUp({preventDefault: function () {}, keyCode: 40});
+                        input_device.doKeyDown({preventDefault: function () {}, keyCode: 37});
                     } else {
-                        input_device.doKeyUp({preventDefault: function(){}, keyCode: local_player_settings.keys.left});
-                        input_device.doKeyDown({preventDefault: function(){}, keyCode: local_player_settings.keys.right});
+                        input_device.doKeyUp({preventDefault: function () {}, keyCode: 37});
+                        input_device.doKeyDown({preventDefault: function () {}, keyCode: 40});
                     }
-                    input_device.doKeyDown({preventDefault: function(){}, keyCode: local_player_settings.keys.start});
-                    input_device.doKeyUp({preventDefault: function(){}, keyCode: local_player_settings.keys.start});
+                    input_device.doKeyDown({preventDefault: function () {}, keyCode: 32});
+                    input_device.doKeyUp({preventDefault: function () {}, keyCode: 32});
                 });
 
                 _registerForStartDataPackets(web_socket, input_device, input_sender, tick_receiver);
@@ -120,7 +122,7 @@ var _ = require('underscore')._;
                 // Set the input_device for the local player to our LocalInputDevice and set it's input_sender
                 // to a WebSocketInputSender that will relay all input-commands to the server
                 _.each(packet.players, function (player_data) {
-                    if(player_data.you) {
+                    if (player_data.you) {
                         player_data.input_device = input_device;
                         player_data.input_handler = input_sender;
                     }

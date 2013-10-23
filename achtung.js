@@ -64,7 +64,7 @@ var input = require('./input.js');
              * Will apply the input command to the given player
              *
              * @param player_id - The player id associated with the given input_command
-             * @param input_command - One of input.COMMANDS
+             * @param input_command - One of exports.INPUT_COMMANDS
              */
             onInputReceived = function (player_id, input_command) {
                 _players_map[player_id].setInternalInputCommand(input_command);
@@ -312,7 +312,7 @@ var input = require('./input.js');
                     _hole_size = 999,
 
                     // The last inpt command that was received from the user controlling this player
-                    _last_command = input.COMMANDS.LEFT_RIGHT_UP,
+                    _last_command = exports.INPUT_COMMANDS.LEFT_RIGHT_UP,
 
                     // The current direction in degrees the player is travelling
                     _direction = direction,
@@ -344,7 +344,7 @@ var input = require('./input.js');
                     /**
                      * Returns the current input state of the player
                      *
-                     * @returns One of input.COMMANDS
+                     * @returns One of exports.INPUT_COMMANDS
                      */
                     getInputState = function () {
                         return _last_command;
@@ -369,20 +369,20 @@ var input = require('./input.js');
                      * Turn left, right or not at all, move in that direction and add one point to our trail
                      *
                      * @param delta_time - The time in seconds the last tick took
-                     * @param input_state - One of input.COMMANDS
+                     * @param input_state - One of exports.INPUT_COMMANDS
                      * @param tick_sender - A TickSender-instance
                      */
                     simulate = function (delta_time, input_state, tick_sender) {
                         // Turn left or right or not at all depending on the player input
-                        if (input_state === input.COMMANDS.LEFT_DOWN) {
+                        if (input_state === exports.INPUT_COMMANDS.LEFT_DOWN) {
                             _direction += settings.TURNING_SPEED * delta_time;
-                        } else if (input_state === input.COMMANDS.RIGHT_DOWN) {
+                        } else if (input_state === exports.INPUT_COMMANDS.RIGHT_DOWN) {
                             _direction -= settings.TURNING_SPEED * delta_time;
                         }
 
                         // Move in our current direction
-                        _x += Math.sin(_direction * (Math.PI/180)) * delta_time * settings.MOVEMENT_SPEED;
-                        _y += Math.cos(_direction * (Math.PI/180)) * delta_time * settings.MOVEMENT_SPEED;
+                        _x += Math.sin(_direction * (Math.PI / 180)) * delta_time * settings.MOVEMENT_SPEED;
+                        _y += Math.cos(_direction * (Math.PI / 180)) * delta_time * settings.MOVEMENT_SPEED;
 
                         // Increase the measured size of the hole and reset it to a minus value
                         // each time it goes over a threshold
@@ -673,7 +673,7 @@ var input = require('./input.js');
                      * Sets command as the last input command. Called from AchtungSimulator.onInputReceived when
                      * input is received from the outside world
                      *
-                     * @param command - One of input.COMMANDS
+                     * @param command - One of exports.INPUT_COMMANDS
                      */
                     setInternalInputCommand = function (command) {
                         _last_command = command;
@@ -727,7 +727,6 @@ var input = require('./input.js');
                     kill: kill,
                     getName: getName,
                     start : start,
-                    setPlayerData : addTrailPoint,
                     id : id,
                     color : color,
                     isAlive : isAlive,
@@ -774,6 +773,14 @@ var input = require('./input.js');
         }
 
         return options;
+    };
+
+    // The defined input commands that can be triggered
+    exports.INPUT_COMMANDS = {
+        LEFT_DOWN : 'LEFT_DOWN',
+        RIGHT_DOWN : 'RIGHT_DOWN',
+        LEFT_RIGHT_UP : 'LEFT_RIGHT_UP',
+        START : 'START'
     };
 
     exports.getSimulatorClass = function () {
