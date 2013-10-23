@@ -11,11 +11,11 @@
 "use strict";
 var _ = require('underscore')._;
 
-var renderer = require('./renderer.js');
-var websocktransport = require('./websocktransport.js');
-var input = require('./input.js');
+var renderer = require('../renderer.js');
+var websocktransport = require('../websocktransport.js');
+var input = require('../input.js');
 
-(function(exports){
+(function (exports) {
     /**
      * Simulator for the game Achtung
      * Implements the Simulator-interface
@@ -792,4 +792,4 @@ var input = require('./input.js');
         _test_options = test_options;
     }
 
-})(typeof exports === 'undefined'? this['achtung']={}: exports);
+})(typeof exports === 'undefined'? this['game']={}: exports);

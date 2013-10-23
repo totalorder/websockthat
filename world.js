@@ -14,8 +14,8 @@ var _ = require('underscore')._;
 var renderer = require('./renderer.js');
 var websocktransport = require('./websocktransport.js');
 var input = require('./input.js');
-var config = require("./config.js"),
-    game = require("./" + config.CONFIG.game_package + ".js");
+var config = require(CONFIG_FILE),
+    game = require("./" + config.CONFIG.game_package + "/game.js");
 
 (function(exports){
     /**
@@ -34,7 +34,7 @@ var config = require("./config.js"),
      * @param render - Boolean saying if the simulation should be rendered or not
      */
     exports.World = function (tick_sender, input_sender, tick_receiver, options, render) {
-        console.log("creating the world!");
+        console.log("creating the " + config.CONFIG.game_package + " world!");
 
         // Create an instance of the specified game simulator
         var simulator = game.getSimulatorClass()(tick_sender, options),

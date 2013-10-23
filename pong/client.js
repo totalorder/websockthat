@@ -1,11 +1,12 @@
 "use strict";
 
-var communication = require("./communication.js");
-var websocktransport = require("./websocktransport.js");
-var world = require("./world.js");
-var input = require("./input.js");
-var config = require("./config.js");
-var ui = require("./ui.js");
+var communication = require("../communication.js");
+var websocktransport = require("../websocktransport.js");
+var world = require("../world.js");
+var input = require("../input.js");
+var config = require(CONFIG_FILE);
+var game = require("../" + config.CONFIG.game_package + "/game.js");
+var ui = require("../ui.js");
 
 var _ = require('underscore')._;
 
@@ -112,8 +113,6 @@ var _ = require('underscore')._;
              */
             web_socket.registerReceivedPacketCallback(communication.PACKET_TYPES.START_DATA, null, function (packet) {
 
-                //_ui.setCanvasSize(packet.options.GAME_WIDTH, packet.options.GAME_HEIGHT);
-
                 // Create a new World passing along the game-options received from the server
                 // Passing in our WebSocketTickReceiver will let the World notify it when the game starts and what
                 // players will be in the game. The InputHandler will then be able to input data directly into
@@ -123,7 +122,7 @@ var _ = require('underscore')._;
                 // Set the input_device for the local player to our LocalInputDevice and set it's input_sender
                 // to a WebSocketInputSender that will relay all input-commands to the server
                 _.each(packet.players, function (player_data) {
-                    if(player_data.you) {
+                    if (player_data.you) {
                         player_data.input_device = input_device;
                         player_data.input_handler = input_sender;
                     }
@@ -154,7 +153,8 @@ var _ = require('underscore')._;
                 var info = document.createElement("li");
                 info.innerHTML = packet.connected_players + "/" + packet.max_players + " connected, " +
                     packet.players_ready + "/" + packet.min_players + " ready";
-                _ui.createToast("Waiting for other players...", start_key_text + " to start! (" + (packet.connected_players - packet.players_ready) + " players not ready)");
+                _ui.createToast("Waiting for other players...", start_key_text + " to start! (" +
+                    (Math.max(packet.connected_players, config.CONFIG.min_players) - packet.players_ready) + " players not ready)");
 
                 _ui.addStatsBoxLine(info);
                 _.each(packet.player_infos, function (player_info) {

@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Achtung die Kurve - Websocket clone</title>
+    <title>Pong - Websocket clone</title>
     <meta name="viewport" content="width=device-width, user-scalable=no">
     <link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.0.0-rc1/css/bootstrap.min.css">
-    <link rel="stylesheet" href="achtungsite.css">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="play-container">
         <div class="title-heading">
-            <h1>Achtung!</h1>
+            <h1>Pong!</h1>
         </div>
 
         <div class="game-area">
@@ -46,17 +46,18 @@
             <div id="debug_message"></div>
             <div id="log"></div>
         </div>
+        <script type="text/javascript">var CONFIG_FILE="config.js"</script>
+        <script type="text/javascript" src="config.js"></script>
         <script type="text/javascript" src="../fakerequire.js"></script>
         <script type="text/javascript" src="../underscore.js"></script>
         <script type="text/javascript" src="../communication.js"></script>
         <script type="text/javascript" src="../websocktransport.js"></script>
         <script type="text/javascript" src="../input.js"></script>
         <script type="text/javascript" src="../renderer.js"></script>
-        <script type="text/javascript" src="../config.js"></script>
-        <script type="text/javascript" src="../achtung.js"></script>
+        <script type="text/javascript" src="game.js"></script>
         <script type="text/javascript" src="../world.js"></script>
         <script type="text/javascript" src="../ui.js"></script>
-        <script type="text/javascript" src="../achtung_client.js"></script>
+        <script type="text/javascript" src="client.js"></script>
     </div>
 </body>
 </html>

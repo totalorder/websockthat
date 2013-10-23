@@ -1,8 +1,9 @@
 "use strict";
 var _ = require('underscore')._;
-var renderer = require('./renderer.js');
-var websocktransport = require('./websocktransport.js');
-var input = require('./input.js');
+
+var renderer = require('../renderer.js');
+var websocktransport = require('../websocktransport.js');
+var input = require('../input.js');
 
 (function (exports) {
     exports.PongSimulator = function (tick_sender, options) {
@@ -359,4 +360,4 @@ var input = require('./input.js');
         _test_options = test_options;
     };
 
-})(typeof exports === 'undefined'? this['pong']={}: exports);
+})(typeof exports === 'undefined'? this['game']={}: exports);

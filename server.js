@@ -16,10 +16,10 @@
 var WebSocketServer = require('ws').Server,
     communication = require("./communication.js"),
     websocktransport = require('./websocktransport.js'),
+    config = require(CONFIG_FILE),
     world = require('./world.js'),
     input = require('./input.js'),
-    config = require("./config.js"),
-    game = require("./" + config.CONFIG.game_package + ".js");
+    game = require("./" + config.CONFIG.game_package + "/game.js");
 
 var _ = require('underscore')._;
 

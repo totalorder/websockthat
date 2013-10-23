@@ -1,12 +1,12 @@
 "use strict";
 
-var communication = require("./communication.js");
-var websocktransport = require("./websocktransport.js");
-var world = require("./world.js");
-var input = require("./input.js");
-var config = require("./config.js");
-var game = require("./" + config.CONFIG.game_package + ".js");
-var ui = require("./ui.js");
+var communication = require("../communication.js");
+var websocktransport = require("../websocktransport.js");
+var world = require("../world.js");
+var input = require("../input.js");
+var config = require(CONFIG_FILE);
+var game = require("../" + config.CONFIG.game_package + "/game.js");
+var ui = require("../ui.js");
 
 var _ = require('underscore')._;
 
@@ -17,9 +17,9 @@ var _ = require('underscore')._;
         client_world = null,
         _ui = new ui.UI(".game-area", "#canvas", ".stats-box", ".toast", ".lobby", ".keyinfo-box"),
         start_key_text = is_touch_device ? "Touch screen" : "Press space",
-
         _init = function () {
             // Create a new WebSocket client
+            console.log('connecting to: ws://' + config.CONFIG.connect_to_address + ':' + config.CONFIG.connect_to_port + '/');
             var web_socket = new window.WebSocket('ws://' + config.CONFIG.connect_to_address + ':' + config.CONFIG.connect_to_port + '/'),
                 player_name = window.location.search.split("?screen_name=")[1];
                 // Set up settings for the local player
@@ -153,7 +153,8 @@ var _ = require('underscore')._;
                 var info = document.createElement("li");
                 info.innerHTML = packet.connected_players + "/" + packet.max_players + " connected, " +
                     packet.players_ready + "/" + packet.min_players + " ready";
-                _ui.createToast("Waiting for other players...", start_key_text + " to start! (" + (packet.connected_players - packet.players_ready) + " players not ready)");
+                _ui.createToast("Waiting for other players...", start_key_text + " to start! (" +
+                    (Math.max(packet.connected_players, config.CONFIG.min_players) - packet.players_ready) + " players not ready)");
 
                 _ui.addStatsBoxLine(info);
                 _.each(packet.player_infos, function (player_info) {
