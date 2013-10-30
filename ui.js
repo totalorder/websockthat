@@ -14,6 +14,11 @@ var _ = require('underscore')._;
                 keyinfo_boxes = document.querySelectorAll(keyinfo_boxes_selector);
 
                 // Add listeners for touch devices
+                if (window.navigator.msPointerEnabled) {
+                    document.addEventListener("MSPointerMove", _touchMoveCallback, false);
+                    document.addEventListener("MSPointerDown", _touchStartCallback, false);
+                    document.addEventListener("MSPointerUp", _touchEndCallback, false);
+                }
                 document.addEventListener('touchmove', _touchMoveCallback);
                 document.addEventListener('touchstart', _touchStartCallback);
                 document.addEventListener('touchend', _touchEndCallback);
@@ -33,13 +38,18 @@ var _ = require('underscore')._;
 
             // Calculate the average position of all touches and send it to _clickInput
             _touchMoveCallback = function (evt) {
-                var totX = 0, totY = 0;
-                _.each(evt.touches, function(touchEvt){
-                    totX += touchEvt.clientX;
-                    totY += touchEvt.clientY;
-                });
-
-                _clickInput(totX / evt.touches.length, totY / evt.touches.length);
+                var totX, totY;
+                    if (evt.type == 'MSPointerMove'){
+                    totX = evt.clientX;
+                    totY = evt.clientY;
+                    _clickInput(totX, totY);
+                } else {
+                    _.each(evt.touches, function(touchEvt){
+                        totX += touchEvt.clientX;
+                        totY += touchEvt.clientY;
+                    });
+                    _clickInput(totX / evt.touches.length, totY / evt.touches.length);
+                }
                 evt.preventDefault();
                 return false;
             },
@@ -62,6 +72,7 @@ var _ = require('underscore')._;
                     }
                 }
             },
+
             // Send a middle-of-the-screen click when a release is triggered.
             // Resulting in a 0/release in _clickInput
             _touchEndCallback = function (evt) {
@@ -69,8 +80,11 @@ var _ = require('underscore')._;
                 evt.preventDefault();
                 return false;
             },
+
             _touchStartCallback = function (evt) {
-                _clickInput(evt.changedTouches[0].clientX, evt.changedTouches[0].clientY);
+                var touchX = evt.clientX || evt.changedTouches[0].clientX;
+                var touchY = evt.clientY || evt.changedTouches[0].clientY;
+                _clickInput(touchX, touchY);
                 evt.preventDefault();
                 return false;
             },
