@@ -1,7 +1,3 @@
-"use strict";
-
-var _ = require('underscore')._;
-
 /**
  * Rendering engine for Websockthat
  *
@@ -14,8 +10,10 @@ var _ = require('underscore')._;
  *
  */
 
-(function(exports){
-    exports.CanvasRenderer = function (element_id, settings, world, simulator) {
+define(["underscore"], function(_){
+    "use strict";
+
+    var CanvasRenderer = function (element_id, settings, world, simulator) {
 
         var desired_FPS = 25, // The disired frames per second
             desired_redraw_interval = 1000 / desired_FPS, // The desired redraw interval to keep the desired FPS
@@ -198,9 +196,9 @@ var _ = require('underscore')._;
                 return false;
             }
         };
-    };
+    },
 
-		exports.SVGRenderer = function(element_id, settings, world) {
+	SVGRenderer = function(element_id, settings, world) {
 
 			if(typeof Raphael === "undefined") {
 				throw new Error("Cannot find Raphael");
@@ -344,9 +342,9 @@ var _ = require('underscore')._;
 				}
 			};
 
-		};
+    },
 
-    exports.StubRenderer = function (element_id, settings, world, simulator) {
+    StubRenderer = function (element_id, settings, world, simulator) {
         return {
             getFrameRenderTime : function() {
                 return 0;
@@ -375,4 +373,10 @@ var _ = require('underscore')._;
 
         };
     };
-})(typeof exports === 'undefined'? this['renderer']={}: exports);
+
+    return {
+        CanvasRenderer : CanvasRenderer,
+        SVGRenderer : SVGRenderer,
+        StubRenderer : StubRenderer
+    };
+});

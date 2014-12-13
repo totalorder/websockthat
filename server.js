@@ -13,24 +13,15 @@
 
 "use strict";
 
-var WebSocketServer = require('ws').Server,
-    communication = require("./communication.js"),
-    websocktransport = require('./websocktransport.js'),
-    config = require(CONFIG_FILE),
-    world = require('./world.js'),
-    input = require('./input.js'),
-    game = require("./" + config.CONFIG.game_package + "/game.js");
-
-var _ = require('underscore')._;
-
-(function (exports) {
+define(["ws", "communication", "websocktransport", "world", "input", CONFIG.gamedep],
+        function (ws, communication, websocktransport, world, input, game) {
     /**
      * A server that listens for new connections and distributes new clients over Games. A game is started when it's
      * reached it's maximum player limit or when a certain amount of clients has asked to start.
      * When a game is full or started a new game will be created that new players will be directed to, always keeping a lobby
      * open for new players.
      */
-    exports.Server = function () {
+    var Server = function () {
         // The id for the next created game. Incremented each time new game is created
         var next_game_id = 0,
             _running_games = [],
@@ -48,10 +39,10 @@ var _ = require('underscore')._;
          * @constructor
          */
         _init = function () {
-            var address = { host: config.CONFIG.bind_to_address,
-                port: config.CONFIG.bind_to_port };
+            var address = { host: CONFIG.bind_to_address,
+                port: CONFIG.bind_to_port };
                 // Create a new WebSocketServer and start listening
-            _web_socket_server = new WebSocketServer(address);
+            _web_socket_server = new ws.Server(address);
             _next_client_id = 0;
 
             // Create a new game setting it as the current "game_on_game"
@@ -124,7 +115,7 @@ var _ = require('underscore')._;
          */
         _createGameOnGame = function () {
             next_game_id += 1;
-            return new exports.Game(next_game_id, config.CONFIG.min_players, config.CONFIG.max_players, _deleteGame);
+            return new Game(next_game_id, CONFIG.min_players, CONFIG.max_players, _deleteGame);
         },
 
         _stop = function () {
@@ -145,7 +136,7 @@ var _ = require('underscore')._;
             getTotalGamesPlayed : _getTotalGamesPlayed,
             stop : _stop
         };
-    };
+    },
 
     /**
      * A game hosting a number of clients and their requests to start/restart
@@ -157,7 +148,7 @@ var _ = require('underscore')._;
      * @param game_over_callback - A callback that notifies the server when a game has allt it's clients disconnected
      *                             and is needed no more.
      */
-    exports.Game = function (id, min_clients, max_clients, game_over_callback) {
+    Game = function (id, min_clients, max_clients, game_over_callback) {
         var _max_clients = max_clients,
             _min_clients = min_clients,
             _id = id,
@@ -239,7 +230,7 @@ var _ = require('underscore')._;
              * Give _restart() as the _restartCallback to the world so it will be called when it's safe to restart
              */
             _start = function () {
-                _sendLobbyPackets(config.CONFIG.start_countdown);
+                _sendLobbyPackets(CONFIG.start_countdown);
                 var _doStart = function () {
                     console.log("starting game " + _id);
                     // Set the state of the game to running
@@ -285,8 +276,8 @@ var _ = require('underscore')._;
                     });
                 };
 
-                if (config.CONFIG.start_countdown > 0) {
-                    setTimeout(_doStart, config.CONFIG.start_countdown * 1000);
+                if (CONFIG.start_countdown > 0) {
+                    setTimeout(_doStart, CONFIG.start_countdown * 1000);
                 } else {
                     _doStart();
                 }
@@ -378,7 +369,7 @@ var _ = require('underscore')._;
                 });
 
                 // Create a new client
-                client = exports.Client(id, local_client_id, web_socket);
+                client = Client(id, local_client_id, web_socket);
 
                 /**
                  * Listen for a HELLO-packet from the client, setting up the client name and marking it as "ready"
@@ -478,7 +469,7 @@ var _ = require('underscore')._;
                 return _games_played;
             }
         };
-    };
+    },
 
     /**
      * A client as represented in the server
@@ -488,7 +479,7 @@ var _ = require('underscore')._;
      * @param local_id - The game-unique local_id of the client
      * @param web_socket - The web_socket-connection connected to the client
      */
-    exports.Client = function (id, local_id, web_socket) {
+    Client = function (id, local_id, web_socket) {
         var _id = id,
             _local_id = local_id,
 
@@ -499,7 +490,7 @@ var _ = require('underscore')._;
             _previous_matches_score = 0,
 
             // Get a color for the client based on it's local_id
-            _color = exports.getColorForID(local_id),
+            _color = getColorForID(local_id),
 
             _web_socket = web_socket,
             _hello = false,
@@ -572,7 +563,7 @@ var _ = require('underscore')._;
 
             }
         };
-    };
+    },
 
     /**
      * Returns a color based on an id
@@ -581,7 +572,7 @@ var _ = require('underscore')._;
      * @param id
      * @return string - A html-color (any of the formats accepted by browsers, eg rgb(), #hex or blue
      */
-    exports.getColorForID = function (id) {
+    getColorForID = function (id) {
         var colors = {
             0 : "orange",
             1 : "green",
@@ -593,7 +584,10 @@ var _ = require('underscore')._;
         return colors[id % _.keys(colors).length];
     };
 
-})(typeof exports === 'undefined'? this['server']={}: exports);
+    return {
+        Server : Server
+    }
+});
 
 /*var server = require('./server.js');
 

@@ -1,3 +1,7 @@
+if (typeof define !== 'function') {
+    var define = require('amdefine')(module);
+}
+
 /**
  * Library for communicating over WebSocket more easy
  * Enhances the WebSocket-API and exposes senders and receivers for input
@@ -16,12 +20,9 @@
  *  getSimulatorClass: Returns the AchtungSimulator
  */
 
-"use strict";
+define(["communication", "underscore"], function(communication, _){
+    "use strict";
 
-var _ = require('underscore')._;
-var communication = require("./communication.js");
-
-(function(exports){
     /**
      * Adds the following convenience methods to a WebSocket-instance:
      *     sendObject(obj)
@@ -31,7 +32,7 @@ var communication = require("./communication.js");
      *
      * @param web_socket - A WebSocket instance
      */
-    exports.addWebSocketObjectSupport = function (web_socket) {
+    var addWebSocketObjectSupport = function (web_socket) {
         if (web_socket.object_support) {
             return;
         }
@@ -195,11 +196,11 @@ var communication = require("./communication.js");
         web_socket.object_support = true;
 
 
-    };
+        },
     /**
      * A class implementing the TickSender-interface, for delivering tick-packets to all connected clients
      */
-    exports.WebSocketTickSender = function () {
+    WebSocketTickSender = function () {
         // Create an empty TICK-packet
         var tick_packet = communication.createTickPacket(0, ""),
             // Keep a list for all clients that should receive updates
@@ -297,7 +298,7 @@ var communication = require("./communication.js");
 
             startGame : startGame
         };
-    };
+    },
 
     /**
      * A class implementing the TickReceiver interface. Receiving TICK-packets from a WebSocket and notifying the
@@ -305,7 +306,7 @@ var communication = require("./communication.js");
      *
      * @param web_socket - A WebSocket instance
      */
-    exports.WebSocketTickReceiver = function (web_socket) {
+    WebSocketTickReceiver = function (web_socket) {
         var _started = false,
 
             // Keep track of if we have already registered a packet callback
@@ -360,13 +361,13 @@ var communication = require("./communication.js");
                 _started = false;
             }
         };
-    };
+    },
 
     /**
      * An input sender that sends all incoming commands over a WebSocket to a remote server
      * @param web_socket
      */
-    exports.WebSocketInputSender = function (web_socket) {
+    WebSocketInputSender = function (web_socket) {
         var _started = false;
 
         return {
@@ -385,13 +386,13 @@ var communication = require("./communication.js");
                 web_socket.sendObject(communication.createInputPacket(command));
             }
         };
-    };
+    },
 
     /**
      * An input device that exposes a listener callback onInputCallback
      * which will trigger player.setCommand()
      */
-    exports.WebSocketInputReceiver = function (web_socket, player_id) {
+    WebSocketInputReceiver = function (web_socket, player_id) {
         var _started = false,
             _onCommandCallback = null,
 
@@ -418,13 +419,13 @@ var communication = require("./communication.js");
                 _onCommandCallback = callback;
             }
         };
-    };
+    },
 
 
     /**
      * WARNING: Zombie code associated with the zombie-project in local.js
      */
-    exports.LocalOutputHandler = function (inputHandler_onTick, onGameOver) {
+    LocalOutputHandler = function (inputHandler_onTick, onGameOver) {
         var tick_packet = communication.createTickPacket(0, ""),
             startGame = function (options, player_infos) {
         };
@@ -461,5 +462,13 @@ var communication = require("./communication.js");
         };
     };
 
-})(typeof exports === 'undefined'? this['websocktransport']={}: exports);
+    return {
+        addWebSocketObjectSupport : addWebSocketObjectSupport,
+        WebSocketTickSender : WebSocketTickSender,
+        WebSocketTickReceiver : WebSocketTickReceiver,
+        WebSocketInputSender : WebSocketInputSender,
+        WebSocketInputReceiver : WebSocketInputReceiver,
+        LocalOutputHandler : LocalOutputHandler
+    };
+});
 

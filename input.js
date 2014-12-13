@@ -1,22 +1,19 @@
-"use strict";
+define(function () {
+    "use strict";
 
-var communication = require("./communication.js");
-var websocktransport = require('./websocktransport.js');
-
-(function (exports) {
-   /*
-    * Input device that reads input from the keyboard and triggers input commands on _player
-    * and on specialKeyCommandsCallback
-    *
-    * @param keys - An object describing which keyCodes match which commands from game.INPUT_COMMANDS
-    *             Should look like:
-    *                    37 : {'down' : game.INPUT_COMMANDS.LEFT_DOWN, 'up' : game.INPUT_COMMANDS.LEFT_RIGHT_UP},
-    *                    40 : {'down' : game.INPUT_COMMANDS.RIGHT_DOWN, 'up' : game.INPUT_COMMANDS.LEFT_RIGHT_UP},
-    *                    32 : {'down' : game.INPUT_COMMANDS.START, 'up' : null, 'local' : true}}
-    * @param localKeyCommandsCallback - Callback to be called with commands that are marked as "local", and
-    *                                   should not be sent to the server
-    */
-    exports.LocalInputDevice = function (keys, localKeyCommandsCallback) {
+    /*
+     * Input device that reads input from the keyboard and triggers input commands on _player
+     * and on specialKeyCommandsCallback
+     *
+     * @param keys - An object describing which keyCodes match which commands from game.INPUT_COMMANDS
+     *             Should look like:
+     *                    37 : {'down' : game.INPUT_COMMANDS.LEFT_DOWN, 'up' : game.INPUT_COMMANDS.LEFT_RIGHT_UP},
+     *                    40 : {'down' : game.INPUT_COMMANDS.RIGHT_DOWN, 'up' : game.INPUT_COMMANDS.LEFT_RIGHT_UP},
+     *                    32 : {'down' : game.INPUT_COMMANDS.START, 'up' : null, 'local' : true}}
+     * @param localKeyCommandsCallback - Callback to be called with commands that are marked as "local", and
+     *                                   should not be sent to the server
+     */
+    var LocalInputDevice = function (keys, localKeyCommandsCallback) {
         var _last_command_key_code = null,
             _player_id = null,
             _onCommandCallback = null,
@@ -99,4 +96,7 @@ var websocktransport = require('./websocktransport.js');
             }
         };
     };
-})(typeof exports === 'undefined'? this['input']={}: exports);
+    return {
+        LocalInputDevice : LocalInputDevice
+    }
+});

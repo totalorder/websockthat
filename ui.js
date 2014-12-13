@@ -1,8 +1,7 @@
-"use strict";
-var _ = require('underscore')._;
+define(["underscore"], function (_) {
+    "use strict";
 
-(function (exports) {
-    exports.UI = function (game_area_selector, canvas_selector, stats_box_selector, toast_selector, lobby_selector,
+    var UI = function (game_area_selector, canvas_selector, stats_box_selector, toast_selector, lobby_selector,
                            keyinfo_boxes_selector) {
         var game_area, stats_box, toast_box, lobby, click_callback, last_touch_direction = 0, canvas, keyinfo_boxes,
             _init = function () {
@@ -146,5 +145,7 @@ var _ = require('underscore')._;
             init : _init
         };
     };
-
-})(typeof exports === 'undefined'? this['ui']={}: exports);
+    return {
+        UI : UI
+    }
+});

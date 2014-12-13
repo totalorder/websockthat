@@ -7,17 +7,10 @@
  *
  */
 
-"use strict";
+define(["underscore", "renderer", "websocktransport", "input", CONFIG.gamedep],
+        function(_, renderer, websocktransport, input, game) {
+    "use strict";
 
-var _ = require('underscore')._;
-
-var renderer = require('./renderer.js');
-var websocktransport = require('./websocktransport.js');
-var input = require('./input.js');
-var config = require(CONFIG_FILE),
-    game = require("./" + config.CONFIG.game_package + "/game.js");
-
-(function(exports){
     /**
      * Networked game engine that hosts a game simulator and exposes it to player input, network events and executes
      * rendering.
@@ -33,8 +26,8 @@ var config = require(CONFIG_FILE),
      * @param options - A dictionary of game options that the game should obey
      * @param render - Boolean saying if the simulation should be rendered or not
      */
-    exports.World = function (tick_sender, input_sender, tick_receiver, options, render) {
-        console.log("creating the " + config.CONFIG.game_package + " world!");
+    var World = function (tick_sender, input_sender, tick_receiver, options, render) {
+        console.log("creating the " + CONFIG.game_package + " world!");
 
         // Create an instance of the specified game simulator
         var simulator = game.getSimulatorClass()(tick_sender, options),
@@ -299,7 +292,8 @@ var config = require(CONFIG_FILE),
 
                 if(!_rendering_engine) {
                     if(render) {
-                        _rendering_engine = new renderer.CanvasRenderer("canvas", rendering_settings, this, simulator);
+                        _rendering_engine = new renderer.StubRenderer("canvas", rendering_settings, this, simulator);
+                        //_rendering_engine = new renderer.CanvasRenderer("canvas", rendering_settings, this, simulator);
                     } else {
                         _rendering_engine = new renderer.StubRenderer("canvas", rendering_settings, this, simulator);
                     }
@@ -334,20 +328,28 @@ var config = require(CONFIG_FILE),
                     _rendering_engine.create(new_player);
                 });
 
+                var _rendererInitialized = function (renderer) {
+                        // Start everything!
+                //_rendering_engine.start();
+                        _game_started = true;
+                        if (tick_sender) {
+                            // Start ticking will keep ticking with the simulation until everybody is dead
+                            startTicking(_restartCallback);
+                        }
+
+                        // Hook up the tick receiver to the simulator
+                        if (tick_receiver) {
+                            tick_receiver.start(simulator, setTPSText);
+                        }
+                    };
+
                 // Get the simulator ready and let it wait for us to call simulator.simulate()
-                simulator.start(_players, _updateScoresCallback);
-
-                // Start everything!
-                _rendering_engine.start();
-                _game_started = true;
-                if (tick_sender) {
-                    // Start ticking will keep ticking with the simulation until everybody is dead
-                    startTicking(_restartCallback);
-                }
-
-                // Hook up the tick receiver to the simulator
-                if (tick_receiver) {
-                    tick_receiver.start(simulator, setTPSText);
+                console.log("render" + render);
+                if (render) {
+                    simulator.start(_players, _updateScoresCallback, _rendererInitialized);
+                } else {
+                    simulator.start(_players, _updateScoresCallback, null);
+                    _rendererInitialized(null);
                 }
             },
 
@@ -423,6 +425,9 @@ var config = require(CONFIG_FILE),
             stop: stop,
             isRunning: function () { return _game_started; }
         };
-
     };
-})(typeof exports === 'undefined'? this['world']={}: exports);
+
+    return {
+        World : World
+    }
+});
