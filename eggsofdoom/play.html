@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Eggs of Doom - Bomberman websocket clone</title>
+    <meta name="viewport" content="width=device-width, user-scalable=no">
+    <link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.0.0-rc1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="play-container">
+        <div class="title-heading">
+            <h1>Eggs of Doom!</h1>
+        </div>
+
+        <div class="game-area">
+            <div class="stats-box">
+                <ul class="lobby list-unstyled"><li><strong>Connecting...</strong></li></ul>
+            </div>
+            <div class="keyinfo-box desktop">
+                <ul class="lobby list-unstyled">
+                    <li><strong>Arrow Left:</strong> Turn left</li>
+                    <li><strong>Arrow Down:</strong> Turn right</li>
+                    <li><strong>Space:</strong> Start game (ready)</li>
+                </ul>
+            </div>
+            <div class="keyinfo-box touch">
+                <ul class="lobby list-unstyled">
+                    <li><strong>Touch left half of screen:</strong></li>
+                    <li>Turn left</li>
+                    <li><strong>Touch left half of screen:</strong></li>
+                    <li>Turn right</li>
+                    <li><strong>Touch anywhere:</strong></li>
+                    <li>Start game (ready)</li>
+                </ul>
+            </div>
+            <div class="canvas-box">
+                <canvas id="canvas" width="600" height="600"></canvas>
+            </div>
+            <div class="toast">
+                Connecting...
+            </div>
+        </div>
+
+        <div class="debug-data">
+            <div id="framerates">Frames/second: <span id="frame_duration"></span> - Ticks/second: <span id="tick_duration"></span></div>
+            <div id="debug_message"></div>
+            <div id="log"></div>
+        </div>
+        <!--<script type="text/javascript">var CONFIG_FILE="config.js"</script>-->
+        <!--<script type="text/javascript" src="config.js"></script>-->
+        <script type="text/javascript" src="require.js" data-main="client"></script>
+        <!--<script type="text/javascript" src="game/require.js"></script>-->
+        <!--<script type="text/javascript" src="../fakerequire.js"></script>-->
+        <!--<script type="text/javascript" src="../underscore.js"></script>-->
+        <!--<script type="text/javascript" src="../communication.js"></script>-->
+        <!--<script type="text/javascript" src="../websocktransport.js"></script>-->
+        <!--<script type="text/javascript" src="../input.js"></script>-->
+        <!--<script type="text/javascript" src="../renderer.js"></script>-->
+        <!--<script type="text/javascript" src="game.js"></script>-->
+        <!--<script type="text/javascript" src="../world.js"></script>-->
+        <!--<script type="text/javascript" src="../ui.js"></script>-->
+        <!--<script type="text/javascript" src="client.js"></script>-->
+    </div>
+</body>
+</html>
