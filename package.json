@@ -1,0 +1,29 @@
+{
+  "name": "websockthat",
+  "version": "1.0.0",
+  "description": "generic destributed gaming framework",
+  "main": "runserver.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/totalorder/websockthat.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/totalorder/websockthat/issues"
+  },
+  "homepage": "https://github.com/totalorder/websockthat",
+  "dependencies": {
+    "amdefine": "^0.1.0",
+    "requirejs": "^2.1.15",
+    "underscore": "^1.7.0",
+    "ws": "^0.6.5"
+  }
+}
